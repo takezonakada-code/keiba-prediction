@@ -2,3128 +2,406 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SANRENPUKU AI — 競馬3連複予測</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #0a0a0c;
-  --bg2: #111116;
-  --bg3: #18181f;
-  --border: rgba(255,255,255,0.07);
-  --border2: rgba(255,255,255,0.13);
-  --gold: #c9a84c;
-  --gold2: #e8c96a;
-  --red: #e05252;
-  --green: #4caf7d;
-  --blue: #5b8dee;
-  --text: #e8e6e0;
-  --text2: #9a9890;
-  --text3: #5a5856;
-  --accent: #c9a84c;
+:root{
+  --bg:#FFFFFF;--bg2:#F8F9FA;--bg3:#F1F3F5;
+  --border:#E5E7EB;--border2:#D1D5DB;
+  --header:#1a1a2e;
+  --text1:#111827;--text2:#374151;--text3:#6B7280;
+  --accent:#2563EB;--accent2:#1D4ED8;
+  --gold:#D97706;--red:#DC2626;--red2:#FEF2F2;
+  --green:#16A34A;--green2:#DCFCE7;--gray:#9CA3AF;
 }
-
-* { margin:0; padding:0; box-sizing:border-box; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Noto Sans JP', sans-serif;
-  font-weight: 300;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-/* grain overlay */
-body::before {
-  content:'';
-  position:fixed;
-  inset:0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events:none;
-  z-index:0;
-  opacity:.4;
-}
-
-/* HEADER */
-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: rgba(10,10,12,0.92);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  padding: 0 32px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 24px;
-  letter-spacing: .12em;
-  color: var(--gold);
-}
-.logo span { color: var(--text3); font-size: 12px; font-family: 'DM Mono', monospace; letter-spacing:.05em; margin-left:10px; vertical-align:middle; }
-
-.header-meta {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  font-size: 11px;
-  font-family: 'DM Mono', monospace;
-  color: var(--text3);
-}
-.live-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--green);
-  animation: pulse 2s ease-in-out infinite;
-  display: inline-block;
-  margin-right: 5px;
-}
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-
-/* MAIN LAYOUT */
-.container {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 32px 32px;
-  position: relative;
-  z-index: 1;
-}
-
-/* STAT STRIP */
-.stat-strip {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 32px;
-  animation: fadeUp .5s ease both;
-}
-.stat-cell {
-  background: var(--bg2);
-  padding: 18px 20px;
-  text-align: center;
-}
-.stat-cell .label {
-  font-size: 10px;
-  letter-spacing: .1em;
-  color: var(--text3);
-  text-transform: uppercase;
-  margin-bottom: 6px;
-  font-family: 'DM Mono', monospace;
-}
-.stat-cell .val {
-  font-family: 'DM Mono', monospace;
-  font-size: 22px;
-  font-weight: 500;
-  color: var(--text);
-}
-.stat-cell .val.up { color: var(--green); }
-.stat-cell .val.gold { color: var(--gold); }
-.stat-cell .sub {
-  font-size: 10px;
-  color: var(--text3);
-  margin-top: 3px;
-  font-family: 'DM Mono', monospace;
-}
-
-/* SECTION TITLE */
-.section-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 20px;
-  letter-spacing: .1em;
-  color: var(--gold);
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.section-title::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-/* RACE GRID */
-.race-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: 16px;
-  margin-bottom: 40px;
-}
-
-.race-card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  transition: border-color .2s, transform .2s;
-  cursor: pointer;
-  animation: fadeUp .6s ease both;
-}
-.race-card:hover {
-  border-color: rgba(201,168,76,0.35);
-  transform: translateY(-2px);
-}
-.race-card.selected {
-  border-color: var(--gold);
-}
-
-.race-card-head {
-  padding: 14px 18px;
-  background: var(--bg3);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-.race-name {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--text);
-  margin-bottom: 3px;
-}
-.race-meta {
-  font-size: 11px;
-  color: var(--text3);
-  font-family: 'DM Mono', monospace;
-}
-.race-badge {
-  font-size: 10px;
-  padding: 3px 9px;
-  border-radius: 99px;
-  font-family: 'DM Mono', monospace;
-  font-weight: 500;
-}
-.badge-jra { background: rgba(91,141,238,0.15); color: var(--blue); border: 1px solid rgba(91,141,238,0.3); }
-.badge-nar { background: rgba(201,168,76,0.12); color: var(--gold); border: 1px solid rgba(201,168,76,0.25); }
-.badge-ev { background: rgba(76,175,125,0.12); color: var(--green); border: 1px solid rgba(76,175,125,0.3); }
-
-.race-card-body { padding: 16px 18px; }
-
-/* HORSE TABLE inside card */
-.horse-rows { margin-bottom: 14px; }
-.horse-row {
-  display: grid;
-  grid-template-columns: 24px 1fr 52px 52px 60px;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
-}
-.horse-row:last-child { border-bottom: none; }
-.horse-num {
-  width: 22px; height: 22px; border-radius: 4px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace;
-}
-.horse-name { font-size: 13px; color: var(--text); }
-.horse-score {
-  font-family: 'DM Mono', monospace;
-  font-size: 12px;
-  text-align: right;
-}
-.horse-rank-pct {
-  font-family: 'DM Mono', monospace;
-  font-size: 11px;
-  color: var(--text3);
-  text-align: right;
-}
-.shap-bar-wrap {
-  height: 4px;
-  background: var(--bg3);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.shap-bar {
-  height: 100%;
-  border-radius: 2px;
-  background: var(--gold);
-  transition: width .8s ease;
-}
-
-/* TICKET SECTION */
-.ticket-label {
-  font-size: 10px;
-  letter-spacing: .1em;
-  color: var(--text3);
-  text-transform: uppercase;
-  font-family: 'DM Mono', monospace;
-  margin-bottom: 8px;
-}
-.tickets {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.ticket {
-  display: grid;
-  grid-template-columns: 1fr 60px 60px 60px;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--bg3);
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  transition: border-color .15s;
-}
-.ticket:hover { border-color: rgba(201,168,76,0.4); }
-.ticket.top-ev { border-color: rgba(76,175,125,0.4); background: rgba(76,175,125,0.04); }
-.ticket-combo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 17px;
-  letter-spacing: .05em;
-  color: var(--text);
-}
-.ticket-p {
-  font-family: 'DM Mono', monospace;
-  font-size: 11px;
-  color: var(--text2);
-  text-align: right;
-}
-.ticket-ev {
-  font-family: 'DM Mono', monospace;
-  font-size: 12px;
-  text-align: right;
-  font-weight: 500;
-}
-.ev-pos { color: var(--green); }
-.ev-neg { color: var(--red); }
-.ticket-kelly {
-  font-family: 'DM Mono', monospace;
-  font-size: 11px;
-  color: var(--gold);
-  text-align: right;
-}
-
-/* DETAIL PANEL */
-.detail-panel {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  margin-bottom: 40px;
-  animation: fadeUp .5s ease both;
-}
-.detail-head {
-  padding: 20px 24px;
-  background: var(--bg3);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.detail-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing:.08em; color: var(--gold); }
-.detail-body { padding: 24px; }
-
-/* EXPLANATION */
-.explanation {
-  font-size: 13px;
-  line-height: 1.85;
-  color: var(--text2);
-  background: var(--bg3);
-  border-radius: 10px;
-  padding: 18px 20px;
-  border-left: 3px solid var(--gold);
-  margin-bottom: 20px;
-  font-style: italic;
-}
-
-/* SHAP FEATURES */
-.shap-list { display: flex; flex-direction: column; gap: 8px; }
-.shap-item {
-  display: grid;
-  grid-template-columns: 180px 1fr 60px;
-  align-items: center;
-  gap: 12px;
-}
-.shap-feat { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; }
-.shap-track { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
-.shap-fill { height: 100%; border-radius: 3px; }
-.shap-fill.pos { background: var(--green); }
-.shap-fill.neg { background: var(--red); }
-.shap-val { font-size: 11px; font-family: 'DM Mono', monospace; text-align: right; }
-.shap-val.pos { color: var(--green); }
-.shap-val.neg { color: var(--red); }
-
-/* ROI DASHBOARD */
-.roi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
-}
-.roi-card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
-  text-align: center;
-}
-.roi-label { font-size: 10px; color: var(--text3); letter-spacing:.1em; text-transform:uppercase; font-family:'DM Mono',monospace; margin-bottom:6px; }
-.roi-val { font-family:'DM Mono',monospace; font-size:24px; font-weight:500; }
-.roi-sub { font-size:10px; color:var(--text3); font-family:'DM Mono',monospace; margin-top:3px; }
-
-/* SLICE TABLE */
-.slice-table { width:100%; border-collapse:collapse; font-size:12px; }
-.slice-table th {
-  text-align:left; padding:8px 12px;
-  font-size:10px; letter-spacing:.1em; text-transform:uppercase;
-  color: var(--text3); font-family:'DM Mono',monospace;
-  border-bottom: 1px solid var(--border);
-  font-weight:400;
-}
-.slice-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  font-family:'DM Mono',monospace;
-  color: var(--text2);
-}
-.slice-table tr:last-child td { border-bottom: none; }
-.slice-table tr:hover td { background: rgba(255,255,255,0.02); }
-.roi-cell { font-weight:500; }
-.roi-cell.good { color: var(--green); }
-.roi-cell.bad { color: var(--red); }
-.roi-cell.mid { color: var(--gold); }
-
-/* NAV TABS */
-.nav-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 28px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0;
-}
-.nav-tab {
-  padding: 10px 20px;
-  font-size: 12px;
-  font-family: 'DM Mono', monospace;
-  letter-spacing: .07em;
-  cursor: pointer;
-  color: var(--text3);
-  border-bottom: 2px solid transparent;
-  transition: all .15s;
-  text-transform: uppercase;
-  background: none;
-  border-top: none;
-  border-left: none;
-  border-right: none;
-}
-.nav-tab:hover { color: var(--text2); }
-.nav-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
-
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
-
-/* MINI CHART */
-.chart-wrap { height: 120px; display: flex; align-items: flex-end; gap: 4px; padding: 10px 0; }
-.chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
-.chart-bar {
-  width: 100%;
-  border-radius: 3px 3px 0 0;
-  transition: height .8s ease;
-  min-height: 4px;
-}
-.chart-bar.pos { background: var(--green); opacity: .8; }
-.chart-bar.neg { background: var(--red); opacity: .8; }
-.chart-xlabel { font-size: 9px; color: var(--text3); font-family:'DM Mono',monospace; }
-
-/* ANIMATIONS */
-@keyframes fadeUp {
-  from { opacity:0; transform:translateY(16px); }
-  to { opacity:1; transform:translateY(0); }
-}
-.race-card:nth-child(1) { animation-delay:.05s; }
-.race-card:nth-child(2) { animation-delay:.1s; }
-.race-card:nth-child(3) { animation-delay:.15s; }
-.race-card:nth-child(4) { animation-delay:.2s; }
-.race-card:nth-child(5) { animation-delay:.25s; }
-.race-card:nth-child(6) { animation-delay:.3s; }
-
-/* MODEL STATUS */
-.model-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.model-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-.model-card-label { font-size: 10px; color: var(--text3); font-family:'DM Mono',monospace; letter-spacing:.1em; text-transform:uppercase; margin-bottom:8px; }
-.model-card-val { font-family:'DM Mono',monospace; font-size: 20px; font-weight:500; }
-.model-card-sub { font-size: 11px; color: var(--text3); font-family:'DM Mono',monospace; margin-top:4px; }
-.status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
-.status-ok { background: var(--green); }
-.status-warn { background: var(--gold); }
-
-/* DRIFT MONITOR */
-.drift-row { display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--border); }
-.drift-row:last-child { border-bottom:none; }
-.drift-feat { font-size:12px; font-family:'DM Mono',monospace; color:var(--text2); flex:1; }
-.drift-bar-wrap { width:120px; height:6px; background:var(--bg3); border-radius:3px; overflow:hidden; }
-.drift-bar { height:100%; border-radius:3px; background:var(--green); }
-.drift-bar.warn { background: var(--gold); }
-.drift-psi { font-size:11px; font-family:'DM Mono',monospace; color:var(--text3); width:40px; text-align:right; }
-
-/* UPDATE NOTICE */
-.update-bar {
-  background: rgba(201,168,76,0.08);
-  border: 1px solid rgba(201,168,76,0.2);
-  border-radius: 8px;
-  padding: 10px 16px;
-  font-size: 12px;
-  color: var(--text3);
-  font-family: 'DM Mono', monospace;
-  margin-bottom: 24px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-@media (max-width: 768px) {
-  .container { padding: 16px; }
-  .race-grid { grid-template-columns: 1fr; }
-  .stat-strip { grid-template-columns: repeat(3, 1fr); }
-  .roi-grid { grid-template-columns: repeat(2, 1fr); }
-  .model-grid { grid-template-columns: 1fr; }
-  .horse-row { grid-template-columns: 22px 1fr 48px 48px 50px; }
-}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Noto Sans JP",sans-serif;background:var(--bg);color:var(--text1);font-size:14px;line-height:1.6}
+button{cursor:pointer;font-family:inherit}
+.header{background:var(--header);color:#fff;padding:14px 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.header-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.header-title{font-size:18px;font-weight:700;letter-spacing:.02em}
+.header-sub{font-size:10px;color:#94A3B8;display:block;font-family:"DM Mono",monospace}
+.header-badge{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:5px;
+  padding:3px 10px;font-size:11px;font-family:"DM Mono",monospace;display:inline-flex;align-items:center;gap:5px}
+.dot{width:6px;height:6px;border-radius:50%;background:#4ADE80;display:inline-block}
+.container{max-width:1280px;margin:0 auto;padding:0 16px 40px}
+.main-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;overflow-x:auto;padding-top:14px}
+.main-tab{padding:9px 18px;border:none;background:none;color:var(--text3);font-size:13px;font-weight:500;
+  white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s}
+.main-tab:hover{color:var(--text1)}
+.main-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.mode-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.mode-btn{padding:7px 16px;border-radius:6px;font-size:12px;font-weight:700;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);transition:all .15s}
+.mode-btn.act-a{background:var(--accent);border-color:var(--accent);color:#fff}
+.mode-btn.act-b{background:var(--red);border-color:var(--red);color:#fff}
+.mode-desc{font-size:11px;color:var(--text3)}
+.venue-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.vtab{padding:5px 14px;border-radius:16px;font-size:12px;font-weight:700;border:1.5px solid var(--border);background:var(--bg);color:var(--text3);transition:all .15s}
+.vtab:hover{border-color:var(--accent);color:var(--accent)}
+.vtab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.vpanel{display:none}
+.vpanel.active{display:block}
+.races-list{display:flex;flex-direction:column;gap:14px}
+.rcard{background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:box-shadow .15s}
+.rcard:hover{box-shadow:0 3px 12px rgba(0,0,0,.08)}
+.rcard.hc{border-color:#FCA5A5;border-width:1.5px}
+.rcard.nodata{opacity:.65;border-style:dashed}
+.rhead{background:var(--bg3);padding:11px 14px;display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
+.rtitle{font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rmeta{font-size:11px;color:var(--text3);margin-top:2px;font-family:"DM Mono",monospace}
+.rbadges{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;align-items:center}
+.badge{display:inline-flex;align-items:center;gap:2px;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700;white-space:nowrap}
+.b-nar{background:#1a1a2e;color:#fff}
+.b-nanka{background:#1D4ED8;color:#fff}
+.b-jra{background:#15803D;color:#fff}
+.b-chH{background:var(--red);color:#fff}
+.b-chM{background:var(--gold);color:#fff}
+.b-chL{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+.b-a{background:#EFF6FF;color:var(--accent);border:1px solid #BFDBFE;font-size:9px}
+.b-b{background:var(--red2);color:var(--red);border:1px solid #FECACA;font-size:9px}
+.cmeter{display:flex;align-items:center;gap:6px;margin-top:5px;justify-content:flex-end}
+.ctrack{width:80px;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.cfill{height:100%;border-radius:2px}
+.clabel{font-size:10px;font-family:"DM Mono",monospace}
+.rbody{padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.rbody{grid-template-columns:1fr}}
+.slabel{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px}
+.hrow{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--border)}
+.hrow:last-child{border-bottom:none}
+.hnum{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.hname{flex:1;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hscore{font-size:11px;font-family:"DM Mono",monospace;color:var(--accent)}
+.hgap{font-size:10px;font-family:"DM Mono",monospace}
+.gp{color:var(--green)}.gn{color:var(--red)}.gz{color:var(--text3)}
+.tlist{display:flex;flex-direction:column;gap:3px}
+.trow{display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px;background:var(--bg2);border:1px solid var(--border)}
+.trow.ta{background:#EFF6FF;border-color:#BFDBFE}
+.trow.tb{background:var(--red2);border-color:#FECACA}
+.tcombo{font-size:14px;font-weight:700;font-family:"DM Mono",monospace;min-width:60px;color:var(--text1)}
+.tcombo.bc{color:var(--red)}
+.tev{font-size:12px;font-family:"DM Mono",monospace;font-weight:600;white-space:nowrap}
+.ep{color:var(--green)}.en{color:var(--red)}.eu{color:var(--text3)}
+.todds{font-size:11px;font-family:"DM Mono",monospace;color:var(--text3);white-space:nowrap}
+.tgap{font-size:11px;font-family:"DM Mono",monospace;color:var(--red);font-weight:600}
+.tband{font-size:9px;padding:1px 5px;border-radius:3px;background:var(--red2);color:var(--red);font-weight:700;margin-left:auto;white-space:nowrap}
+.tkelly{font-size:11px;color:var(--text3);margin-left:auto;white-space:nowrap}
+.ndcard{padding:20px;text-align:center;color:var(--text3)}
+.spin{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;margin:0 auto 6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.stt{font-size:14px;font-weight:700;margin:16px 0 10px;padding-bottom:5px;border-bottom:2px solid var(--border)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px}
+.scard{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:14px}
+.slb{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.svl{font-size:22px;font-weight:700;font-family:"DM Mono",monospace}
+.ssb{font-size:11px;color:var(--text3);margin-top:2px}
+.sg{color:var(--green)}.sr{color:var(--red)}.sn{color:var(--accent)}
+.dtable{width:100%;border-collapse:collapse;margin-bottom:16px}
+.dtable th{font-size:10px;text-transform:uppercase;color:var(--text3);padding:7px 10px;text-align:left;background:var(--bg3);border-bottom:2px solid var(--border)}
+.dtable td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px}
+.dtable tr:hover td{background:var(--bg2)}
+.rg{color:var(--green);font-weight:700}.rb{color:var(--red);font-weight:700}.rn{color:var(--text3)}
+.chart-wrap{display:flex;align-items:flex-end;gap:3px;height:80px;padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:6px}
+.cbar{border-radius:2px 2px 0 0;flex:1;min-width:16px}
+.cbar.pos{background:var(--green)}.cbar.neg{background:#FCA5A5}
+.cbwrap{display:flex;flex-direction:column;align-items:center;flex:1;gap:2px}
+.cxl{font-size:9px;color:var(--text3);text-align:center;font-family:"DM Mono",monospace}
+.hitcard{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:10px}
+.hitcard.ref{border-style:dashed}
+.schedcard{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:14px}
+.waitcard{padding:28px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:10px}
 </style>
 </head>
 <body>
-
-<header>
-  <div class="logo">SANRENPUKU<span>AI PREDICTION SYSTEM v2.0</span></div>
-  <div class="header-meta">
-    <span><span class="live-dot"></span>LIVE</span>
-    <span id="clock">--:--:--</span>
-    <span id="today-date">----/--/--</span>
+<header class="header">
+  <div class="header-inner">
+    <div>
+      <div class="header-title">🐎 SANRENPUKU AI</div>
+      <span class="header-sub">競馬3連複予測システム v2.0</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span class="header-badge"><span class="dot"></span><span id="today-date">—</span></span>
+      <span class="header-badge" id="clock">—</span>
+      <span class="header-badge">更新: <span id="update-time">05:30</span></span>
+    </div>
   </div>
 </header>
-
 <div class="container">
-
-  <div class="update-bar">
-    <span class="live-dot"></span>
-    <span>本日のデータ: <strong id="update-time" style="color:var(--gold)">毎日 05:30 自動更新</strong> — Walk-Forward検証済み / Plackett-Luce確率 / Half-Kelly推奨賭け金</span>
+<div class="main-tabs">
+  <button class="main-tab active" onclick="sw('predictions',this)">📊 本日の予測</button>
+  <button class="main-tab" onclick="sw('yesterday',this)">📋 昨日の結果</button>
+  <button class="main-tab" onclick="sw('roi',this)">📈 ROI</button>
+  <button class="main-tab" onclick="sw('hits',this)">🏆 的中事例</button>
+  <button class="main-tab" onclick="sw('tomorrow',this)">📅 明日の予測</button>
+  <button class="main-tab" onclick="sw('model',this)">⚙️ モデル状態</button>
+</div>
+<!-- 本日の予測 -->
+<div id="tab-predictions" class="tab-panel active">
+  <div class="mode-bar">
+    <span style="font-size:12px;color:var(--text3);font-weight:600">予測モード:</span>
+    <button id="bma" class="mode-btn act-a" onclick="setMode('A')">🎯 本命モード</button>
+    <button id="bmb" class="mode-btn" onclick="setMode('B')">💰 高配当モード</button>
+    <span class="mode-desc" id="mdesc">全レース / Harville EV重視</span>
   </div>
-
-  <!-- STAT STRIP -->
-  <div class="stat-strip">
-    <div class="stat-cell">
-      <div class="label">本日レース数</div>
-      <div class="val gold" id="stat-races">12</div>
-      <div class="sub">JRA 8 / NAR 4</div>
-    </div>
-    <div class="stat-cell">
-      <div class="label">推奨買い目</div>
-      <div class="val" id="stat-tickets">47</div>
-      <div class="sub">EV > 0 のみ</div>
-    </div>
-    <div class="stat-cell">
-      <div class="label">平均EV</div>
-      <div class="val up" id="stat-ev">+0.082</div>
-      <div class="sub">期待値</div>
-    </div>
-    <div class="stat-cell">
-      <div class="label">今週ROI</div>
-      <div class="val up" id="stat-roi">93.4%</div>
-      <div class="sub">回収率</div>
-    </div>
-    <div class="stat-cell">
-      <div class="label">モデル精度</div>
-      <div class="val gold" id="stat-auc">NDCG@3 0.71</div>
-      <div class="sub">Walk-Forward済</div>
-    </div>
+  <div class="venue-tabs" id="vtabs"></div>
+  <div id="vpanels"></div>
+</div>
+<!-- 昨日の結果 -->
+<div id="tab-yesterday" class="tab-panel">
+  <div class="stt">📋 昨日の結果照合</div>
+  <div id="yest-content" style="padding:20px;text-align:center;color:var(--text3)">
+    毎晩23:00の自動取得 → 翌朝5:30の更新で反映されます
   </div>
-
-  <!-- NAV TABS -->
-  <div class="nav-tabs">
-    <button class="nav-tab active" onclick="switchTab('predictions')">本日の予測</button>
-    <button class="nav-tab" onclick="switchTab('roi')">ROIダッシュボード</button>
-    <button class="nav-tab" onclick="switchTab('model')">モデル状態</button>
-    <button class="nav-tab" onclick="switchTab('hits')">🏆 的中事例</button>
-    <button class="nav-tab" onclick="switchTab('tomorrow')">📅 明日の予測</button>
+</div>
+<!-- ROI -->
+<div id="tab-roi" class="tab-panel">
+  <div class="stt">📈 パフォーマンス統計</div>
+  <div class="stats-grid">
+    <div class="scard"><div class="slb">システムA 的中率</div><div class="svl sg" id="ar">40.0%</div><div class="ssb">6/15R (2026-06-04)</div></div>
+    <div class="scard"><div class="slb">システムA ROI</div><div class="svl sn" id="roi-a">—</div><div class="ssb">払戻データ取得後</div></div>
+    <div class="scard"><div class="slb">システムB 的中率</div><div class="svl sr" id="br">0.0%</div><div class="ssb">0/12R (未計測)</div></div>
+    <div class="scard"><div class="slb">HIGH_CHAOS 的中</div><div class="svl sn">2/6R</div><div class="ssb">60点以上</div></div>
   </div>
-
-  <!-- TAB: PREDICTIONS -->
-  <div id="tab-predictions" class="tab-panel active">
-    <!-- モード切り替えボタン -->
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
-      <div style="font-size:12px;color:var(--text3);letter-spacing:.05em;">予測モード:</div>
-      <div style="display:flex;gap:8px;">
-        <button id="btn-mode-a" onclick="setMode('A')"
-          style="padding:7px 18px;border-radius:20px;border:1.5px solid var(--accent);
-                 background:var(--accent);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">
-          🎯 本命モード
-        </button>
-        <button id="btn-mode-b" onclick="setMode('B')"
-          style="padding:7px 18px;border-radius:20px;border:1.5px solid var(--gold);
-                 background:transparent;color:var(--gold);font-size:12px;font-weight:600;cursor:pointer;">
-          💰 高配当モード
-        </button>
-      </div>
-      <div id="mode-desc" style="font-size:11px;color:var(--text3);margin-left:8px;">
-        全レース表示 / EV重視
-      </div>
-    </div>
-
-    <div class="section-title" id="section-title-races">本日の3連複予測</div>
-    <div class="race-grid" id="race-grid"></div>
-
-    <div class="section-title">予測詳細</div>
-    <div class="detail-panel" id="detail-panel">
-      <div class="detail-head">
-        <div class="detail-title" id="detail-title">レースを選択してください</div>
-        <div style="display:flex;gap:8px;" id="detail-badges"></div>
-      </div>
-      <div class="detail-body" id="detail-body">
-        <div style="color:var(--text3);font-size:13px;text-align:center;padding:40px 0;">レースカードをクリックすると詳細が表示されます</div>
-      </div>
-    </div>
+  <div class="stt">週次ROI</div>
+  <div id="rchart" class="chart-wrap"></div>
+  <div id="rlabels" style="display:flex;gap:3px"></div>
+  <div class="stt">競馬場別ROI</div>
+  <table class="dtable"><thead><tr><th>競馬場</th><th>試行</th><th>的中</th><th>ROI</th></tr></thead>
+  <tbody id="troibody"></tbody></table>
+  <div class="stt">chaos帯別ROI</div>
+  <table class="dtable"><thead><tr><th>スコア帯</th><th>試行</th><th>的中</th><th>ROI</th></tr></thead>
+  <tbody id="croibody"></tbody></table>
+</div>
+<!-- 的中事例 -->
+<div id="tab-hits" class="tab-panel">
+  <div class="stt">🏆 的中事例（払戻確認済みのみ）</div>
+  <div style="font-size:12px;color:var(--text3);margin-bottom:14px">実際に払戻が確認できた場合のみ記録します</div>
+  <div id="hits-list"></div>
+</div>
+<!-- 明日の予測 -->
+<div id="tab-tomorrow" class="tab-panel">
+  <div class="stt">📅 明日の予測（<span id="tmr-date">2026-06-05</span>）</div>
+  <div class="schedcard">
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px">明日の開催予定</div>
+    <div id="tmr-sched" style="font-size:13px;line-height:2"></div>
   </div>
-
-  <!-- TAB: ROI -->
-  <div id="tab-roi" class="tab-panel">
-    <div class="section-title">ROI ダッシュボード</div>
-    <div class="roi-grid">
-      <div class="roi-card">
-        <div class="roi-label">今週回収率</div>
-        <div class="roi-val" style="color:var(--green)">93.4%</div>
-        <div class="roi-sub">目標: 90〜105%</div>
-      </div>
-      <div class="roi-card">
-        <div class="roi-label">今月回収率</div>
-        <div class="roi-val" style="color:var(--gold)">88.7%</div>
-        <div class="roi-sub">賭け金対比</div>
-      </div>
-      <div class="roi-card">
-        <div class="roi-label">最大DD</div>
-        <div class="roi-val" style="color:var(--text)">-8.3%</div>
-        <div class="roi-sub">上限: -20%</div>
-      </div>
-      <div class="roi-card">
-        <div class="roi-label">Racing Sharpe</div>
-        <div class="roi-val" style="color:var(--gold)">0.83</div>
-        <div class="roi-sub">週次換算</div>
-      </div>
-    </div>
-
-    <!-- Weekly chart -->
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;">
-      <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">週次ROI推移（直近8週）</div>
-      <div class="chart-wrap" id="roi-chart"></div>
-    </div>
-
-    <div class="section-title">スライス別ROI</div>
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-      <table class="slice-table">
-        <thead>
-          <tr>
-            <th>馬場</th><th>距離帯</th><th>件数</th>
-            <th>回収率</th><th>的中率</th><th>平均EV</th>
-          </tr>
-        </thead>
-        <tbody id="slice-tbody"></tbody>
-      </table>
-    </div>
+  <div id="tmr-races"></div>
+</div>
+<!-- モデル状態 -->
+<div id="tab-model" class="tab-panel">
+  <div class="stt">⚙️ モデル状態</div>
+  <div class="stats-grid">
+    <div class="scard"><div class="slb">評価方式</div><div class="svl sg" style="font-size:14px">Walk-Forward</div><div class="ssb">月次/embargo 7日</div></div>
+    <div class="scard"><div class="slb">確率エンジン</div><div class="svl" style="font-size:14px">Harville</div><div class="ssb">EV = p×odds−1.0</div></div>
+    <div class="scard"><div class="slb">特徴量数</div><div class="svl sn">32</div><div class="ssb">pace/jockey/weight/gap</div></div>
+    <div class="scard"><div class="slb">モデル</div><div class="svl" style="font-size:13px">市場確率</div><div class="ssb">LGBMRanker学習待ち</div></div>
   </div>
-
-  <!-- TAB: MODEL -->
-  <div id="tab-model" class="tab-panel">
-    <div class="section-title">モデル状態</div>
-    <div class="model-grid">
-      <div class="model-card">
-        <div class="model-card-label">評価方式</div>
-        <div class="model-card-val" style="font-size:14px;color:var(--green)">Walk-Forward</div>
-        <div class="model-card-sub">月次 / embargo 7日</div>
-      </div>
-      <div class="model-card">
-        <div class="model-card-label">主モデル</div>
-        <div class="model-card-val" style="font-size:14px;">LGBMRanker</div>
-        <div class="model-card-sub">lambdarank / NDCG@3</div>
-      </div>
-      <div class="model-card">
-        <div class="model-card-label">確率エンジン</div>
-        <div class="model-card-val" style="font-size:14px;color:var(--gold);">Plackett-Luce</div>
-        <div class="model-card-sub">3連複 exact計算</div>
-      </div>
-      <div class="model-card">
-        <div class="model-card-label">LogLoss</div>
-        <div class="model-card-val">0.412</div>
-        <div class="model-card-sub">8週平均比 -2.1%</div>
-      </div>
-      <div class="model-card">
-        <div class="model-card-label">Brier Score</div>
-        <div class="model-card-val">0.187</div>
-        <div class="model-card-sub">校正済み</div>
-      </div>
-      <div class="model-card">
-        <div class="model-card-label">特徴量数</div>
-        <div class="model-card-val">47</div>
-        <div class="model-card-sub">31 → 47 (RBF追加済)</div>
-      </div>
-    </div>
-
-    <div style="margin-top:24px;" class="section-title">特徴量重要度 — SHAP平均</div>
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;">
-      <div class="shap-list" id="shap-global"></div>
-    </div>
-
-    <div style="margin-top:24px;" class="section-title">ドリフト監視 (PSI)</div>
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;">
-      <div id="drift-list"></div>
-      <div style="margin-top:12px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">
-        <span style="color:var(--green)">■</span> 正常 (&lt;0.10)　
-        <span style="color:var(--gold)">■</span> 注意 (0.10〜0.25)　
-        <span style="color:var(--red)">■</span> 警告 (&gt;0.25)
-      </div>
-    </div>
-  </div>
-
-  <!-- TAB: HITS（的中事例） -->
-  <div id="tab-hits" class="tab-panel">
-    <div class="section-title">🏆 的中事例</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:16px;">
-      払戻金額が確認できた事実のみ記録します
-    </div>
-    <div id="hits-list"></div>
-  </div>
-
-  <!-- TAB: 明日の予測 -->
-  <div id="tab-tomorrow" class="tab-panel">
-    <div class="section-title">📅 明日の予測（2026-06-05）</div>
-    <div id="tomorrow-content">
-      <div style="padding:20px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:600;margin-bottom:12px;">🏇 明日の開催情報</div>
-        <div id="tomorrow-schedule" style="font-size:13px;line-height:2;color:var(--text2);">
-          読み込み中...
-        </div>
-      </div>
-      <div id="tomorrow-races" class="race-grid"></div>
-    </div>
-  </div>
-
+  <div class="stt">取得データ</div>
+  <table class="dtable"><thead><tr><th>テーブル</th><th>件数</th><th>備考</th></tr></thead>
+  <tbody><tr><td>nar_races</td><td style="font-family:'DM Mono'">4,962</td><td>2023-01〜2026-06</td></tr>
+  <tr><td>nar_results</td><td style="font-family:'DM Mono'">44,929</td><td>着順・タイム・上がり</td></tr>
+  <tr><td>predictions</td><td style="font-family:'DM Mono'">118</td><td>本日分</td></tr>
+  <tr><td>hit_records</td><td style="font-family:'DM Mono'">0</td><td>確認済み的中なし</td></tr></tbody></table>
+</div>
 </div><!-- /container -->
-
 <script>
-// ===== MOCK DATA =====
-const TODAY = new Date();
-const RACES = [
-  {
-    "id": "202648060401",
-    "name": "名古屋1R 優駿DAY オープニング(3歳)",
-    "meta": "名古屋 / ダート1700m / 重",
-    "badge": "nar",
-    "time": "12:25",
-    "field": 12,
-    "raceClass": "",
-    "chaosScore": 66,
-    "isHighChaos": true,
-    "chaosLevel": "🔥高配当",
-    "isHighOddsTarget": true,
-    "hotReasons": [
-      "C〜B級(other)",
-      "頭数12頭",
-      "荒れ66点",
-      "1番人気3.7倍",
-      "上位3頭シェア57%"
-    ],
-    "horses": [
-      {
-        "num": 8,
-        "name": "ゴコクホウジョウ",
-        "score": 0.221,
-        "gap": 0.041,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.163,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 4,
-        "name": "イヌボウノツキ",
-        "score": 0.19,
-        "gap": 0.039,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.163,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 1,
-        "name": "ブルーリュバン",
-        "score": 0.159,
-        "gap": -0.127,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -1.141,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 12,
-        "name": "カリビアンダンサー",
-        "score": 0.146,
-        "gap": 0.037,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.163,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "2-6-8",
-        "p": 0.00071,
-        "ev": 0.0556,
-        "kelly": "¥100",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "2-4-6",
-        "p": 0.00058,
-        "ev": 0.0535,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-6-12",
-        "p": 0.00042,
-        "ev": 0.0508,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-6-9",
-        "p": 0.0002,
-        "ev": 0.0474,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-6-11",
-        "p": 8e-05,
-        "ev": 0.0457,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-6-7",
-        "p": 0.0037,
-        "estOdds": 189.3,
-        "gap": 4.548,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "6-7-11",
-        "p": 0.00369,
-        "estOdds": 189.8,
-        "gap": 4.442,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "5-6-7",
-        "p": 0.00367,
-        "estOdds": 190.5,
-        "gap": 4.418,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "【高配当チャンス】荒れスコア6600% (C〜B級(other), 頭数12頭, 荒れ66点, 1番人気3.7倍, 上位3頭シェア57%)。軸候補: ゴコクホウジョウ（8番） スコア0.221高配当狙い: 2-6-7 推定189倍名古屋 ダート1700m 重。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202648060403",
-    "name": "名古屋3R C6組",
-    "meta": "名古屋 / ダート1500m / 稍",
-    "badge": "nar",
-    "time": "13:25",
-    "field": 12,
-    "raceClass": "C12",
-    "chaosScore": 51,
-    "isHighChaos": false,
-    "chaosLevel": "⚡中配当",
-    "isHighOddsTarget": false,
-    "hotReasons": [
-      "C〜B級(C)",
-      "頭数12頭"
-    ],
-    "horses": [
-      {
-        "num": 4,
-        "name": "サトノスフィア",
-        "score": 0.377,
-        "gap": -0.147,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -1.183,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 10,
-        "name": "キタノプレンティ",
-        "score": 0.21,
-        "gap": 0.147,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.845,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 7,
-        "name": "パープルルージュ",
-        "score": 0.119,
-        "gap": 0.133,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.845,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 2,
-        "name": "メイショウトサンコ",
-        "score": 0.107,
-        "gap": -0.1,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -1.183,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "6-7-10",
-        "p": 0.01298,
-        "ev": 0.0575,
-        "kelly": "¥100",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "3-7-10",
-        "p": 0.00731,
-        "ev": 0.0543,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "7-10-11",
-        "p": 0.00416,
-        "ev": 0.0526,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "7-9-10",
-        "p": 0.00347,
-        "ev": 0.0522,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-7-10",
-        "p": 0.00104,
-        "ev": 0.051,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-8-9",
-        "p": 0.00349,
-        "estOdds": 200.4,
-        "gap": 7.206,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "1-8-11",
-        "p": 0.0035,
-        "estOdds": 199.8,
-        "gap": 7.028,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "1-5-8",
-        "p": 0.00352,
-        "estOdds": 198.9,
-        "gap": 6.622,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "軸候補: サトノスフィア（4番） スコア0.377高配当狙い: 1-8-9 推定200倍名古屋 ダート1500m 稍。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202648060404",
-    "name": "名古屋4R C5組",
-    "meta": "名古屋 / ダート1500m / 稍",
-    "badge": "nar",
-    "time": "14:00",
-    "field": 12,
-    "raceClass": "C12",
-    "chaosScore": 51,
-    "isHighChaos": false,
-    "chaosLevel": "⚡中配当",
-    "isHighOddsTarget": false,
-    "hotReasons": [
-      "C〜B級(C)",
-      "頭数12頭"
-    ],
-    "horses": [
-      {
-        "num": 9,
-        "name": "トップパワー",
-        "score": 0.381,
-        "gap": -0.137,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.986,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 6,
-        "name": "メイショウオハコ",
-        "score": 0.165,
-        "gap": 0.252,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 2.129,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 3,
-        "name": "ヴォルヴァ",
-        "score": 0.144,
-        "gap": 0.055,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.26,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 11,
-        "name": "サクリファイス",
-        "score": 0.108,
-        "gap": -0.093,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.986,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "3-6-12",
-        "p": 0.00941,
-        "ev": 0.1328,
-        "kelly": "¥100",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "5-6-12",
-        "p": 0.00278,
-        "ev": 0.1248,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "4-6-12",
-        "p": 0.00142,
-        "ev": 0.1234,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-6-12",
-        "p": 0.00025,
-        "ev": 0.1222,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "6-10-12",
-        "p": 0.00015,
-        "ev": 0.1221,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-8-10",
-        "p": 0.00343,
-        "estOdds": 203.9,
-        "gap": 9.638,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "4-8-10",
-        "p": 0.00351,
-        "estOdds": 199.4,
-        "gap": 7.91,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "2-4-10",
-        "p": 0.00352,
-        "estOdds": 199.0,
-        "gap": 7.658,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "軸候補: トップパワー（9番） スコア0.381高配当狙い: 2-8-10 推定204倍名古屋 ダート1500m 稍。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202648060405",
-    "name": "名古屋5R B9組",
-    "meta": "名古屋 / ダート1400m / 稍",
-    "badge": "nar",
-    "time": "14:35",
-    "field": 12,
-    "raceClass": "B12",
-    "chaosScore": 61,
-    "isHighChaos": true,
-    "chaosLevel": "🔥高配当",
-    "isHighOddsTarget": true,
-    "hotReasons": [
-      "C〜B級(B)",
-      "頭数12頭",
-      "荒れ61点",
-      "1番人気2.5倍"
-    ],
-    "horses": [
-      {
-        "num": 4,
-        "name": "ブルスケッタ",
-        "score": 0.334,
-        "gap": 0.078,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.215,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 8,
-        "name": "アイタロオ",
-        "score": 0.188,
-        "gap": -0.165,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -1.504,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 3,
-        "name": "ハルノウミ",
-        "score": 0.137,
-        "gap": 0.238,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 1.934,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 7,
-        "name": "メイショウハンゾウ",
-        "score": 0.134,
-        "gap": -0.154,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -1.504,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "3-4-9",
-        "p": 0.01452,
-        "ev": 0.1168,
-        "kelly": "¥100",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "3-9-12",
-        "p": 0.00163,
-        "ev": 0.0793,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "3-6-9",
-        "p": 0.00053,
-        "ev": 0.0768,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "3-9-10",
-        "p": 0.00051,
-        "ev": 0.0768,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-3-9",
-        "p": 0.00034,
-        "ev": 0.0764,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-5-11",
-        "p": 0.00352,
-        "estOdds": 198.6,
-        "gap": 6.427,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "5-10-11",
-        "p": 0.00355,
-        "estOdds": 197.3,
-        "gap": 6.031,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "5-6-11",
-        "p": 0.00355,
-        "estOdds": 197.1,
-        "gap": 5.985,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "【高配当チャンス】荒れスコア6100% (C〜B級(B), 頭数12頭, 荒れ61点, 1番人気2.5倍)。軸候補: ブルスケッタ（4番） スコア0.334高配当狙い: 2-5-11 推定199倍名古屋 ダート1400m 稍。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202650060401",
-    "name": "園田1R C3三",
-    "meta": "園田 / ダート1400m / 稍",
-    "badge": "nar",
-    "time": "10:40",
-    "field": 10,
-    "raceClass": "C310",
-    "chaosScore": 54,
-    "isHighChaos": false,
-    "chaosLevel": "⚡中配当",
-    "isHighOddsTarget": false,
-    "hotReasons": [
-      "C〜B級(C)",
-      "頭数10頭"
-    ],
-    "horses": [
-      {
-        "num": 8,
-        "name": "サクラヴィグール",
-        "score": 0.677,
-        "gap": -0.141,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -1.225,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 6,
-        "name": "サティンボディス",
-        "score": 0.101,
-        "gap": 0.183,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.816,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 7,
-        "name": "メフィスト",
-        "score": 0.078,
-        "gap": 0.179,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.816,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 4,
-        "name": "ゴールドプレミアム",
-        "score": 0.047,
-        "gap": -0.046,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -1.225,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "3-6-7",
-        "p": 0.00152,
-        "ev": 0.1927,
-        "kelly": "¥100",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "2-6-7",
-        "p": 0.00064,
-        "ev": 0.1899,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "6-7-9",
-        "p": 0.00028,
-        "ev": 0.1888,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-6-7",
-        "p": 0.00027,
-        "ev": 0.1887,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-3-6",
-        "p": 0.0002,
-        "ev": 0.1785,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-2-9",
-        "p": 0.00567,
-        "estOdds": 123.5,
-        "gap": 8.723,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "1-3-9",
-        "p": 0.00576,
-        "estOdds": 121.5,
-        "gap": 7.881,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "1-9-10",
-        "p": 0.00575,
-        "estOdds": 121.8,
-        "gap": 7.745,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "軸候補: サクラヴィグール（8番） スコア0.677高配当狙い: 1-2-9 推定124倍園田 ダート1400m 稍。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202650060402",
-    "name": "園田2R C3二",
-    "meta": "園田 / ダート1400m / 稍",
-    "badge": "nar",
-    "time": "11:10",
-    "field": 10,
-    "raceClass": "C310",
-    "chaosScore": 69,
-    "isHighChaos": true,
-    "chaosLevel": "🔥高配当",
-    "isHighOddsTarget": true,
-    "hotReasons": [
-      "C〜B級(C)",
-      "頭数10頭",
-      "荒れ69点",
-      "1番人気2.8倍"
-    ],
-    "horses": [
-      {
-        "num": 10,
-        "name": "サトノロワ",
-        "score": 0.273,
-        "gap": -0.037,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.143,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 5,
-        "name": "メイショウシュート",
-        "score": 0.258,
-        "gap": 0.144,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 1.286,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 7,
-        "name": "アグネスサンキ",
-        "score": 0.229,
-        "gap": -0.134,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.857,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 6,
-        "name": "ヒマリン",
-        "score": 0.191,
-        "gap": 0.053,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.571,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "5-6-8",
-        "p": 0.00406,
-        "ev": 0.0238,
-        "kelly": "¥100",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "4-5-8",
-        "p": 6e-05,
-        "ev": 0.0084,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "5-8-10",
-        "p": 0.0067,
-        "ev": -0.0671,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "4-6-8",
-        "p": 4e-05,
-        "ev": -0.0837,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "4-5-6",
-        "p": 0.00203,
-        "ev": -0.099,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-4-8",
-        "p": 0.00596,
-        "estOdds": 117.5,
-        "gap": 8.624,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "3-4-8",
-        "p": 0.00596,
-        "estOdds": 117.4,
-        "gap": 8.508,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "1-3-4",
-        "p": 0.00595,
-        "estOdds": 117.6,
-        "gap": 8.399,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "【高配当チャンス】荒れスコア6900% (C〜B級(C), 頭数10頭, 荒れ69点, 1番人気2.8倍)。軸候補: サトノロワ（10番） スコア0.273高配当狙い: 1-4-8 推定118倍園田 ダート1400m 稍。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202650060403",
-    "name": "園田3R C3一",
-    "meta": "園田 / ダート1400m / 稍",
-    "badge": "nar",
-    "time": "11:40",
-    "field": 10,
-    "raceClass": "C310",
-    "chaosScore": 74,
-    "isHighChaos": true,
-    "chaosLevel": "🔥高配当",
-    "isHighOddsTarget": true,
-    "hotReasons": [
-      "C〜B級(C)",
-      "頭数10頭",
-      "荒れ74点",
-      "1番人気3.0倍"
-    ],
-    "horses": [
-      {
-        "num": 4,
-        "name": "サファリ",
-        "score": 0.296,
-        "gap": 0.156,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 1.813,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 7,
-        "name": "ラスアルハイマ",
-        "score": 0.214,
-        "gap": -0.039,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.236,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 3,
-        "name": "フルリール",
-        "score": 0.171,
-        "gap": -0.037,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.236,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 2,
-        "name": "グランロゼ",
-        "score": 0.157,
-        "gap": -0.037,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.236,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "4-8-9",
-        "p": 0.00213,
-        "ev": -0.16,
-        "kelly": "¥100",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "1-4-9",
-        "p": 0.00213,
-        "ev": -0.16,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-4-9",
-        "p": 0.03366,
-        "ev": -0.1636,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "3-4-9",
-        "p": 0.03742,
-        "ev": -0.1639,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "4-7-9",
-        "p": 0.05007,
-        "ev": -0.1652,
-        "kelly": "¥200",
-        "mode": "A"
-      },
-      {
-        "combo": "5-6-8",
-        "p": 0.00606,
-        "estOdds": 115.6,
-        "gap": 6.761,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "1-5-6",
-        "p": 0.00606,
-        "estOdds": 115.6,
-        "gap": 6.757,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "1-6-8",
-        "p": 0.00608,
-        "estOdds": 115.2,
-        "gap": 6.636,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "【高配当チャンス】荒れスコア7400% (C〜B級(C), 頭数10頭, 荒れ74点, 1番人気3.0倍)。軸候補: サファリ（4番） スコア0.296高配当狙い: 5-6-8 推定116倍園田 ダート1400m 稍。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202650060404",
-    "name": "園田4R 奥海ダッシュ3歳C2",
-    "meta": "園田 / ダート820m / 稍",
-    "badge": "nar",
-    "time": "12:10",
-    "field": 12,
-    "raceClass": "C212",
-    "chaosScore": 57,
-    "isHighChaos": false,
-    "chaosLevel": "⚡中配当",
-    "isHighOddsTarget": false,
-    "hotReasons": [
-      "C〜B級(C)",
-      "頭数12頭"
-    ],
-    "horses": [
-      {
-        "num": 4,
-        "name": "ララヴァニーユ",
-        "score": 0.459,
-        "gap": 0.088,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.603,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 5,
-        "name": "サフラナール",
-        "score": 0.21,
-        "gap": -0.052,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.302,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 12,
-        "name": "ミッドナイトフライ",
-        "score": 0.151,
-        "gap": -0.048,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.302,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 11,
-        "name": "スカイライズ",
-        "score": 0.071,
-        "gap": -0.044,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.302,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "3-4-7",
-        "p": 0.00043,
-        "ev": 0.0899,
-        "kelly": "¥100",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "3-7-10",
-        "p": 0.0,
-        "ev": -0.0566,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-3-7",
-        "p": 0.0,
-        "ev": -0.0568,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "3-6-7",
-        "p": 0.0,
-        "ev": -0.0568,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "3-7-8",
-        "p": 2e-05,
-        "ev": -0.0581,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "3-9-10",
-        "p": 0.0034,
-        "estOdds": 205.7,
-        "gap": 9.142,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "1-3-10",
-        "p": 0.00341,
-        "estOdds": 205.3,
-        "gap": 8.932,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "3-6-10",
-        "p": 0.00342,
-        "estOdds": 205.0,
-        "gap": 8.763,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "軸候補: ララヴァニーユ（4番） スコア0.459高配当狙い: 3-9-10 推定206倍園田 ダート820m 稍。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202650060406",
-    "name": "園田6R C2二",
-    "meta": "園田 / ダート1400m / 稍",
-    "badge": "nar",
-    "time": "13:10",
-    "field": 10,
-    "raceClass": "C210",
-    "chaosScore": 54,
-    "isHighChaos": false,
-    "chaosLevel": "⚡中配当",
-    "isHighOddsTarget": false,
-    "hotReasons": [
-      "C〜B級(C)",
-      "頭数10頭"
-    ],
-    "horses": [
-      {
-        "num": 9,
-        "name": "エポエポサン",
-        "score": 0.489,
-        "gap": -0.129,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.905,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 8,
-        "name": "ミヤグリフォン",
-        "score": 0.306,
-        "gap": 0.127,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.603,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 1,
-        "name": "マットーネロッソ",
-        "score": 0.089,
-        "gap": 0.098,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.603,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 4,
-        "name": "ワンダーキュイラス",
-        "score": 0.061,
-        "gap": -0.068,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.905,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "1-2-8",
-        "p": 0.00556,
-        "ev": 0.1119,
-        "kelly": "¥100",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "2-5-8",
-        "p": 0.00011,
-        "ev": 0.1004,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-3-8",
-        "p": 0.00011,
-        "ev": 0.1004,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-2-5",
-        "p": 2e-05,
-        "ev": 0.0604,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-2-3",
-        "p": 2e-05,
-        "ev": 0.0604,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "3-5-6",
-        "p": 0.00576,
-        "estOdds": 121.5,
-        "gap": 11.042,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "3-5-7",
-        "p": 0.00577,
-        "estOdds": 121.2,
-        "gap": 10.706,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "2-3-5",
-        "p": 0.00586,
-        "estOdds": 119.4,
-        "gap": 9.841,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "軸候補: エポエポサン（9番） スコア0.489高配当狙い: 3-5-6 推定122倍園田 ダート1400m 稍。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202650060407",
-    "name": "園田7R C2一",
-    "meta": "園田 / ダート1400m / 稍",
-    "badge": "nar",
-    "time": "13:40",
-    "field": 10,
-    "raceClass": "C210",
-    "chaosScore": 62,
-    "isHighChaos": true,
-    "chaosLevel": "🔥高配当",
-    "isHighOddsTarget": true,
-    "hotReasons": [
-      "C〜B級(C)",
-      "頭数10頭",
-      "荒れ62点"
-    ],
-    "horses": [
-      {
-        "num": 4,
-        "name": "デイムサンライズ",
-        "score": 0.445,
-        "gap": 0.221,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 1.545,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 8,
-        "name": "アースグレーザー",
-        "score": 0.34,
-        "gap": -0.222,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -1.182,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 6,
-        "name": "ノリウッドテール",
-        "score": 0.073,
-        "gap": 0.05,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.636,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 10,
-        "name": "レディーペガサス",
-        "score": 0.049,
-        "gap": 0.049,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.636,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "4-6-10",
-        "p": 0.02234,
-        "ev": 0.003,
-        "kelly": "¥100",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "2-4-6",
-        "p": 0.0104,
-        "ev": 0.0004,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "4-6-7",
-        "p": 0.0022,
-        "ev": -0.0011,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-4-6",
-        "p": 0.00125,
-        "ev": -0.0013,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-4-10",
-        "p": 0.00671,
-        "ev": -0.0028,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-5-7",
-        "p": 0.00581,
-        "estOdds": 120.6,
-        "gap": 9.797,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "1-2-5",
-        "p": 0.00592,
-        "estOdds": 118.1,
-        "gap": 8.271,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "1-5-9",
-        "p": 0.00591,
-        "estOdds": 118.5,
-        "gap": 8.198,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "【高配当チャンス】荒れスコア6200% (C〜B級(C), 頭数10頭, 荒れ62点)。軸候補: デイムサンライズ（4番） スコア0.445高配当狙い: 1-5-7 推定121倍園田 ダート1400m 稍。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202650060408",
-    "name": "園田8R C2",
-    "meta": "園田 / ダート1700m / 稍",
-    "badge": "nar",
-    "time": "14:10",
-    "field": 10,
-    "raceClass": "C210",
-    "chaosScore": 49,
-    "isHighChaos": false,
-    "chaosLevel": "⚡中配当",
-    "isHighOddsTarget": false,
-    "hotReasons": [
-      "C〜B級(C)",
-      "頭数10頭"
-    ],
-    "horses": [
-      {
-        "num": 2,
-        "name": "タガノディオーサ",
-        "score": 0.675,
-        "gap": 0.087,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.306,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 10,
-        "name": "パフオブウインド",
-        "score": 0.164,
-        "gap": -0.16,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -1.225,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 5,
-        "name": "ザタイムズ",
-        "score": 0.076,
-        "gap": 0.031,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.306,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 1,
-        "name": "サンウイング",
-        "score": 0.02,
-        "gap": -0.077,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.714,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "2-6-9",
-        "p": 0.00656,
-        "ev": 0.066,
-        "kelly": "¥100",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "2-5-6",
-        "p": 0.03008,
-        "ev": 0.0245,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-3-6",
-        "p": 0.00177,
-        "ev": 0.0126,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "5-6-9",
-        "p": 0.00017,
-        "ev": -0.0323,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "3-6-9",
-        "p": 1e-05,
-        "ev": -0.0345,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "3-4-8",
-        "p": 0.0056,
-        "estOdds": 125.0,
-        "gap": 9.844,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "4-6-8",
-        "p": 0.00568,
-        "estOdds": 123.2,
-        "gap": 8.755,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "4-8-9",
-        "p": 0.00568,
-        "estOdds": 123.2,
-        "gap": 8.608,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "軸候補: タガノディオーサ（2番） スコア0.675高配当狙い: 3-4-8 推定125倍園田 ダート1700m 稍。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202650060409",
-    "name": "園田9R C1一",
-    "meta": "園田 / ダート1400m / 稍",
-    "badge": "nar",
-    "time": "14:45",
-    "field": 12,
-    "raceClass": "C112",
-    "chaosScore": 57,
-    "isHighChaos": false,
-    "chaosLevel": "⚡中配当",
-    "isHighOddsTarget": false,
-    "hotReasons": [
-      "C〜B級(C)",
-      "頭数12頭"
-    ],
-    "horses": [
-      {
-        "num": 1,
-        "name": "ヴァラール",
-        "score": 0.55,
-        "gap": 0.08,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.447,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 10,
-        "name": "アンノドミニ",
-        "score": 0.136,
-        "gap": -0.117,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.894,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 8,
-        "name": "ファンシンレディー",
-        "score": 0.088,
-        "gap": 0.04,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.447,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 4,
-        "name": "モンサンオブライト",
-        "score": 0.076,
-        "gap": -0.109,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.894,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "1-5-12",
-        "p": 0.00119,
-        "ev": 0.0724,
-        "kelly": "¥100",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "5-8-12",
-        "p": 8e-05,
-        "ev": 0.0059,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "5-7-12",
-        "p": 1e-05,
-        "ev": 0.0027,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-5-12",
-        "p": 1e-05,
-        "ev": 0.0027,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-8-12",
-        "p": 0.03986,
-        "ev": -0.0423,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-3-5",
-        "p": 0.00339,
-        "estOdds": 206.5,
-        "gap": 9.256,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "3-5-7",
-        "p": 0.0034,
-        "estOdds": 206.2,
-        "gap": 9.141,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "3-5-6",
-        "p": 0.0034,
-        "estOdds": 206.1,
-        "gap": 8.989,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "軸候補: ヴァラール（1番） スコア0.550高配当狙い: 2-3-5 推定206倍園田 ダート1400m 稍。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202650060410",
-    "name": "園田10R JRA交流 氷ノ山特別",
-    "meta": "園田 / ダート1400m / 稍",
-    "badge": "nar",
-    "time": "15:20",
-    "field": 11,
-    "raceClass": "",
-    "chaosScore": 39,
-    "isHighChaos": false,
-    "chaosLevel": "普通",
-    "isHighOddsTarget": false,
-    "hotReasons": [
-      "C〜B級(other)",
-      "頭数11頭"
-    ],
-    "horses": [
-      {
-        "num": 8,
-        "name": "セヴェンヌ",
-        "score": 0.67,
-        "gap": 0.034,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.201,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 1,
-        "name": "モカプウイング",
-        "score": 0.071,
-        "gap": 0.012,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.201,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 6,
-        "name": "スカイノハル",
-        "score": 0.063,
-        "gap": -0.155,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -1.275,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 9,
-        "name": "スズカローズキング",
-        "score": 0.047,
-        "gap": 0.012,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.201,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "1-4-8",
-        "p": 0.04622,
-        "ev": -0.071,
-        "kelly": "¥200",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "4-8-9",
-        "p": 0.02917,
-        "ev": -0.0724,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "3-4-8",
-        "p": 0.02425,
-        "ev": -0.0728,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "4-8-11",
-        "p": 0.01563,
-        "ev": -0.0734,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "4-8-10",
-        "p": 0.00656,
-        "ev": -0.0739,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "2-7-10",
-        "p": 0.00429,
-        "estOdds": 163.3,
-        "gap": 8.282,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "2-4-7",
-        "p": 0.00438,
-        "estOdds": 159.9,
-        "gap": 7.478,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "2-7-11",
-        "p": 0.00436,
-        "estOdds": 160.7,
-        "gap": 7.441,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "軸候補: セヴェンヌ（8番） スコア0.670高配当狙い: 2-7-10 推定163倍園田 ダート1400m 稍。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202650060411",
-    "name": "園田11R 六甲盃重賞",
-    "meta": "園田 / ダート1870m / 稍",
-    "badge": "nar",
-    "time": "15:55",
-    "field": 10,
-    "raceClass": "重賞",
-    "chaosScore": 19,
-    "isHighChaos": false,
-    "chaosLevel": "普通",
-    "isHighOddsTarget": false,
-    "hotReasons": [
-      "頭数10頭"
-    ],
-    "horses": [
-      {
-        "num": 2,
-        "name": "シンメデージー",
-        "score": 0.516,
-        "gap": -0.0,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.0,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 7,
-        "name": "ダンテバローズ",
-        "score": 0.199,
-        "gap": -0.0,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.0,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 6,
-        "name": "エイシンレオ",
-        "score": 0.133,
-        "gap": -0.0,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.0,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 4,
-        "name": "ミックファイア",
-        "score": 0.084,
-        "gap": -0.0,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 0.0,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "3-4-7",
-        "p": 0.00064,
-        "ev": -0.3,
-        "kelly": "¥100",
-        "mode": "A",
-        "topEv": true
-      },
-      {
-        "combo": "7-8-9",
-        "p": 3e-05,
-        "ev": -0.3,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-3-4",
-        "p": 1e-05,
-        "ev": -0.3,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-3-5",
-        "p": 0.0,
-        "ev": -0.3,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "1-4-6",
-        "p": 0.00049,
-        "ev": -0.3,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "3-5-9",
-        "p": 0.00579,
-        "estOdds": 120.9,
-        "gap": 9.889,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true,
-        "topGap": true
-      },
-      {
-        "combo": "1-5-9",
-        "p": 0.0058,
-        "estOdds": 120.7,
-        "gap": 9.681,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      },
-      {
-        "combo": "1-3-9",
-        "p": 0.0058,
-        "estOdds": 120.7,
-        "gap": 9.627,
-        "kelly": "—",
-        "mode": "B",
-        "highOdds": true
-      }
-    ],
-    "explanation": "軸候補: シンメデージー（2番） スコア0.516高配当狙い: 3-5-9 推定121倍園田 ダート1870m 稍。払戻率70.0%。",
-    "shapFeats": []
-  },
-  {
-    "id": "202650060412",
-    "name": "園田12R 青馬ひすみ☆配信記念4thB1",
-    "meta": "園田 / ダート1400m / 稍",
-    "badge": "nar",
-    "time": "16:30",
-    "field": 3,
-    "raceClass": "B112",
-    "chaosScore": 62,
-    "isHighChaos": true,
-    "chaosLevel": "🔥高配当",
-    "isHighOddsTarget": false,
-    "hotReasons": [
-      "C〜B級(B)",
-      "荒れ62点",
-      "1番人気3.3倍"
-    ],
-    "horses": [
-      {
-        "num": 11,
-        "name": "エイシンアニーモ",
-        "score": 0.641,
-        "gap": -0.184,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.707,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 8,
-        "name": "グッドハビッツ",
-        "score": 0.325,
-        "gap": 0.206,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": 1.414,
-        "rankPct": 0.0,
-        "shap": 0.0
-      },
-      {
-        "num": 2,
-        "name": "サンライズガッツ",
-        "score": 0.034,
-        "gap": -0.065,
-        "pace": 0.5,
-        "jvScore": 0.28,
-        "weightZ": -0.707,
-        "rankPct": 0.0,
-        "shap": 0.0
-      }
-    ],
-    "tickets": [
-      {
-        "combo": "2-8-11",
-        "p": 1.0,
-        "ev": -0.3,
-        "kelly": "¥5000",
-        "mode": "A",
-        "topEv": true
-      }
-    ],
-    "explanation": "軸候補: エイシンアニーモ（11番） スコア0.641園田 ダート1400m 稍。払戻率70.0%。",
-    "shapFeats": []
-  }
-];
-
-const SLICE_DATA = [
-  {
-    "surface": "園田",
-    "dist": "",
-    "cnt": 11,
-    "roi": 0.0,
-    "hit": 54.54545454545454,
-    "ev": 0.0
-  },
-  {
-    "surface": "名古屋",
-    "dist": "",
-    "cnt": 4,
-    "roi": 0.0,
-    "hit": 0.0,
-    "ev": 0.0
-  }
-];
-
+const RACES = [{"id":"202648060401","name":"名古屋1R 優駿DAY オープニング(3歳)","meta":"名古屋 / ダート1700m / 重","badge":"nar","time":"12:25","field":12,"raceClass":"","track":"名古屋","raceNo":1,"chaosScore":66,"isHighChaos":true,"chaosLevel":"🔥高配当","isHighOddsTarget":true,"hotReasons":["C〜B級(other)","頭数12頭","荒れ66点","1番人気3.7倍","上位3頭シェア57%"],"horses":[{"num":8,"name":"ゴコクホウジョウ","score":0.221,"gap":0.041,"pace":0.5,"jvScore":0.28,"weightZ":0.163,"rankPct":0.0,"shap":0.0},{"num":4,"name":"イヌボウノツキ","score":0.19,"gap":0.039,"pace":0.5,"jvScore":0.28,"weightZ":0.163,"rankPct":0.0,"shap":0.0},{"num":1,"name":"ブルーリュバン","score":0.159,"gap":-0.127,"pace":0.5,"jvScore":0.28,"weightZ":-1.141,"rankPct":0.0,"shap":0.0},{"num":12,"name":"カリビアンダンサー","score":0.146,"gap":0.037,"pace":0.5,"jvScore":0.28,"weightZ":0.163,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"2-6-8","p":0.00071,"ev":0.0556,"kelly":"¥100","mode":"A","topEv":true},{"combo":"2-4-6","p":0.00058,"ev":0.0535,"kelly":"¥100","mode":"A"},{"combo":"2-6-12","p":0.00042,"ev":0.0508,"kelly":"¥100","mode":"A"},{"combo":"2-6-9","p":0.0002,"ev":0.0474,"kelly":"¥100","mode":"A"},{"combo":"2-6-11","p":8e-05,"ev":0.0457,"kelly":"¥100","mode":"A"},{"combo":"2-6-7","p":0.0037,"estOdds":189.3,"gap":4.548,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"6-7-11","p":0.00369,"estOdds":189.8,"gap":4.442,"kelly":"—","mode":"B","highOdds":true},{"combo":"5-6-7","p":0.00367,"estOdds":190.5,"gap":4.418,"kelly":"—","mode":"B","highOdds":true}],"explanation":"【高配当チャンス】荒れスコア6600% (C〜B級(other), 頭数12頭, 荒れ66点, 1番人気3.7倍, 上位3頭シェア57%)。軸候補: ゴコクホウジョウ（8番） スコア0.221高配当狙い: 2-6-7 推定189倍名古屋 ダート1700m 重。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202648060402","name":"名古屋2R C7組","meta":"名古屋 / ダート1500m / 重","badge":"nar","time":"12:55","field":12,"raceClass":"C12","track":"名古屋","raceNo":2,"chaosScore":0,"isHighChaos":false,"chaosLevel":"取得中","isHighOddsTarget":false,"hotReasons":[],"horses":[],"tickets":[],"explanation":"名古屋 ダート1500m 重。払戻率70.0%。","shapFeats":[],"noData":true},{"id":"202648060403","name":"名古屋3R C6組","meta":"名古屋 / ダート1500m / 稍","badge":"nar","time":"13:25","field":12,"raceClass":"C12","track":"名古屋","raceNo":3,"chaosScore":51,"isHighChaos":false,"chaosLevel":"⚡中配当","isHighOddsTarget":false,"hotReasons":["C〜B級(C)","頭数12頭"],"horses":[{"num":4,"name":"サトノスフィア","score":0.377,"gap":-0.147,"pace":0.5,"jvScore":0.28,"weightZ":-1.183,"rankPct":0.0,"shap":0.0},{"num":10,"name":"キタノプレンティ","score":0.21,"gap":0.147,"pace":0.5,"jvScore":0.28,"weightZ":0.845,"rankPct":0.0,"shap":0.0},{"num":7,"name":"パープルルージュ","score":0.119,"gap":0.133,"pace":0.5,"jvScore":0.28,"weightZ":0.845,"rankPct":0.0,"shap":0.0},{"num":2,"name":"メイショウトサンコ","score":0.107,"gap":-0.1,"pace":0.5,"jvScore":0.28,"weightZ":-1.183,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"6-7-10","p":0.01298,"ev":0.0575,"kelly":"¥100","mode":"A","topEv":true},{"combo":"3-7-10","p":0.00731,"ev":0.0543,"kelly":"¥100","mode":"A"},{"combo":"7-10-11","p":0.00416,"ev":0.0526,"kelly":"¥100","mode":"A"},{"combo":"7-9-10","p":0.00347,"ev":0.0522,"kelly":"¥100","mode":"A"},{"combo":"1-7-10","p":0.00104,"ev":0.051,"kelly":"¥100","mode":"A"},{"combo":"1-8-9","p":0.00349,"estOdds":200.4,"gap":7.206,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"1-8-11","p":0.0035,"estOdds":199.8,"gap":7.028,"kelly":"—","mode":"B","highOdds":true},{"combo":"1-5-8","p":0.00352,"estOdds":198.9,"gap":6.622,"kelly":"—","mode":"B","highOdds":true}],"explanation":"軸候補: サトノスフィア（4番） スコア0.377高配当狙い: 1-8-9 推定200倍名古屋 ダート1500m 稍。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202648060404","name":"名古屋4R C5組","meta":"名古屋 / ダート1500m / 稍","badge":"nar","time":"14:00","field":12,"raceClass":"C12","track":"名古屋","raceNo":4,"chaosScore":51,"isHighChaos":false,"chaosLevel":"⚡中配当","isHighOddsTarget":false,"hotReasons":["C〜B級(C)","頭数12頭"],"horses":[{"num":9,"name":"トップパワー","score":0.381,"gap":-0.137,"pace":0.5,"jvScore":0.28,"weightZ":-0.986,"rankPct":0.0,"shap":0.0},{"num":6,"name":"メイショウオハコ","score":0.165,"gap":0.252,"pace":0.5,"jvScore":0.28,"weightZ":2.129,"rankPct":0.0,"shap":0.0},{"num":3,"name":"ヴォルヴァ","score":0.144,"gap":0.055,"pace":0.5,"jvScore":0.28,"weightZ":0.26,"rankPct":0.0,"shap":0.0},{"num":11,"name":"サクリファイス","score":0.108,"gap":-0.093,"pace":0.5,"jvScore":0.28,"weightZ":-0.986,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"3-6-12","p":0.00941,"ev":0.1328,"kelly":"¥100","mode":"A","topEv":true},{"combo":"5-6-12","p":0.00278,"ev":0.1248,"kelly":"¥100","mode":"A"},{"combo":"4-6-12","p":0.00142,"ev":0.1234,"kelly":"¥100","mode":"A"},{"combo":"2-6-12","p":0.00025,"ev":0.1222,"kelly":"¥100","mode":"A"},{"combo":"6-10-12","p":0.00015,"ev":0.1221,"kelly":"¥100","mode":"A"},{"combo":"2-8-10","p":0.00343,"estOdds":203.9,"gap":9.638,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"4-8-10","p":0.00351,"estOdds":199.4,"gap":7.91,"kelly":"—","mode":"B","highOdds":true},{"combo":"2-4-10","p":0.00352,"estOdds":199.0,"gap":7.658,"kelly":"—","mode":"B","highOdds":true}],"explanation":"軸候補: トップパワー（9番） スコア0.381高配当狙い: 2-8-10 推定204倍名古屋 ダート1500m 稍。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202648060405","name":"名古屋5R B9組","meta":"名古屋 / ダート1400m / 稍","badge":"nar","time":"14:35","field":12,"raceClass":"B12","track":"名古屋","raceNo":5,"chaosScore":61,"isHighChaos":true,"chaosLevel":"🔥高配当","isHighOddsTarget":true,"hotReasons":["C〜B級(B)","頭数12頭","荒れ61点","1番人気2.5倍"],"horses":[{"num":4,"name":"ブルスケッタ","score":0.334,"gap":0.078,"pace":0.5,"jvScore":0.28,"weightZ":0.215,"rankPct":0.0,"shap":0.0},{"num":8,"name":"アイタロオ","score":0.188,"gap":-0.165,"pace":0.5,"jvScore":0.28,"weightZ":-1.504,"rankPct":0.0,"shap":0.0},{"num":3,"name":"ハルノウミ","score":0.137,"gap":0.238,"pace":0.5,"jvScore":0.28,"weightZ":1.934,"rankPct":0.0,"shap":0.0},{"num":7,"name":"メイショウハンゾウ","score":0.134,"gap":-0.154,"pace":0.5,"jvScore":0.28,"weightZ":-1.504,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"3-4-9","p":0.01452,"ev":0.1168,"kelly":"¥100","mode":"A","topEv":true},{"combo":"3-9-12","p":0.00163,"ev":0.0793,"kelly":"¥100","mode":"A"},{"combo":"3-6-9","p":0.00053,"ev":0.0768,"kelly":"¥100","mode":"A"},{"combo":"3-9-10","p":0.00051,"ev":0.0768,"kelly":"¥100","mode":"A"},{"combo":"2-3-9","p":0.00034,"ev":0.0764,"kelly":"¥100","mode":"A"},{"combo":"2-5-11","p":0.00352,"estOdds":198.6,"gap":6.427,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"5-10-11","p":0.00355,"estOdds":197.3,"gap":6.031,"kelly":"—","mode":"B","highOdds":true},{"combo":"5-6-11","p":0.00355,"estOdds":197.1,"gap":5.985,"kelly":"—","mode":"B","highOdds":true}],"explanation":"【高配当チャンス】荒れスコア6100% (C〜B級(B), 頭数12頭, 荒れ61点, 1番人気2.5倍)。軸候補: ブルスケッタ（4番） スコア0.334高配当狙い: 2-5-11 推定199倍名古屋 ダート1400m 稍。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202648060406","name":"名古屋6R もさ11歳おめでとう(B)","meta":"名古屋 / ダート1500m / 稍","badge":"nar","time":"15:10","field":12,"raceClass":"B12","track":"名古屋","raceNo":6,"chaosScore":0,"isHighChaos":false,"chaosLevel":"取得中","isHighOddsTarget":false,"hotReasons":[],"horses":[],"tickets":[],"explanation":"名古屋 ダート1500m 稍。払戻率70.0%。","shapFeats":[],"noData":true},{"id":"202648060407","name":"名古屋7R B7組","meta":"名古屋 / ダート1500m / 稍","badge":"nar","time":"15:40","field":12,"raceClass":"B12","track":"名古屋","raceNo":7,"chaosScore":0,"isHighChaos":false,"chaosLevel":"取得中","isHighOddsTarget":false,"hotReasons":[],"horses":[],"tickets":[],"explanation":"名古屋 ダート1500m 稍。払戻率70.0%。","shapFeats":[],"noData":true},{"id":"202648060408","name":"名古屋8R B6組","meta":"名古屋 / ダート1700m / 稍","badge":"nar","time":"16:15","field":12,"raceClass":"B12","track":"名古屋","raceNo":8,"chaosScore":0,"isHighChaos":false,"chaosLevel":"取得中","isHighOddsTarget":false,"hotReasons":[],"horses":[],"tickets":[],"explanation":"名古屋 ダート1700m 稍。払戻率70.0%。","shapFeats":[],"noData":true},{"id":"202648060409","name":"名古屋9R ヌサカン大空戦(B)","meta":"名古屋 / ダート2000m / 稍","badge":"nar","time":"16:50","field":12,"raceClass":"B12","track":"名古屋","raceNo":9,"chaosScore":0,"isHighChaos":false,"chaosLevel":"取得中","isHighOddsTarget":false,"hotReasons":[],"horses":[],"tickets":[],"explanation":"名古屋 ダート2000m 稍。払戻率70.0%。","shapFeats":[],"noData":true},{"id":"202648060410","name":"名古屋10R クラシックドリーム戦(3歳)","meta":"名古屋 / ダート2100m / 稍","badge":"nar","time":"17:20","field":12,"raceClass":"","track":"名古屋","raceNo":10,"chaosScore":0,"isHighChaos":false,"chaosLevel":"取得中","isHighOddsTarget":false,"hotReasons":[],"horses":[],"tickets":[],"explanation":"名古屋 ダート2100m 稍。払戻率70.0%。","shapFeats":[],"noData":true},{"id":"202648060411","name":"名古屋11R 東海優駿重賞","meta":"名古屋 / ダート2100m / 稍","badge":"nar","time":"18:05","field":12,"raceClass":"","track":"名古屋","raceNo":11,"chaosScore":0,"isHighChaos":false,"chaosLevel":"取得中","isHighOddsTarget":false,"hotReasons":[],"horses":[],"tickets":[],"explanation":"名古屋 ダート2100m 稍。払戻率70.0%。","shapFeats":[],"noData":true},{"id":"202648060412","name":"名古屋12R 金シャチ最終戦(C)","meta":"名古屋 / ダート1500m / 稍","badge":"nar","time":"18:40","field":12,"raceClass":"C12","track":"名古屋","raceNo":12,"chaosScore":0,"isHighChaos":false,"chaosLevel":"取得中","isHighOddsTarget":false,"hotReasons":[],"horses":[],"tickets":[],"explanation":"名古屋 ダート1500m 稍。払戻率70.0%。","shapFeats":[],"noData":true},{"id":"202650060401","name":"園田1R C3三","meta":"園田 / ダート1400m / 稍","badge":"nar","time":"10:40","field":10,"raceClass":"C310","track":"園田","raceNo":1,"chaosScore":54,"isHighChaos":false,"chaosLevel":"⚡中配当","isHighOddsTarget":false,"hotReasons":["C〜B級(C)","頭数10頭"],"horses":[{"num":8,"name":"サクラヴィグール","score":0.677,"gap":-0.141,"pace":0.5,"jvScore":0.28,"weightZ":-1.225,"rankPct":0.0,"shap":0.0},{"num":6,"name":"サティンボディス","score":0.101,"gap":0.183,"pace":0.5,"jvScore":0.28,"weightZ":0.816,"rankPct":0.0,"shap":0.0},{"num":7,"name":"メフィスト","score":0.078,"gap":0.179,"pace":0.5,"jvScore":0.28,"weightZ":0.816,"rankPct":0.0,"shap":0.0},{"num":4,"name":"ゴールドプレミアム","score":0.047,"gap":-0.046,"pace":0.5,"jvScore":0.28,"weightZ":-1.225,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"3-6-7","p":0.00152,"ev":0.1927,"kelly":"¥100","mode":"A","topEv":true},{"combo":"2-6-7","p":0.00064,"ev":0.1899,"kelly":"¥100","mode":"A"},{"combo":"6-7-9","p":0.00028,"ev":0.1888,"kelly":"¥100","mode":"A"},{"combo":"1-6-7","p":0.00027,"ev":0.1887,"kelly":"¥100","mode":"A"},{"combo":"2-3-6","p":0.0002,"ev":0.1785,"kelly":"¥100","mode":"A"},{"combo":"1-2-9","p":0.00567,"estOdds":123.5,"gap":8.723,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"1-3-9","p":0.00576,"estOdds":121.5,"gap":7.881,"kelly":"—","mode":"B","highOdds":true},{"combo":"1-9-10","p":0.00575,"estOdds":121.8,"gap":7.745,"kelly":"—","mode":"B","highOdds":true}],"explanation":"軸候補: サクラヴィグール（8番） スコア0.677高配当狙い: 1-2-9 推定124倍園田 ダート1400m 稍。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202650060402","name":"園田2R C3二","meta":"園田 / ダート1400m / 稍","badge":"nar","time":"11:10","field":10,"raceClass":"C310","track":"園田","raceNo":2,"chaosScore":69,"isHighChaos":true,"chaosLevel":"🔥高配当","isHighOddsTarget":true,"hotReasons":["C〜B級(C)","頭数10頭","荒れ69点","1番人気2.8倍"],"horses":[{"num":10,"name":"サトノロワ","score":0.273,"gap":-0.037,"pace":0.5,"jvScore":0.28,"weightZ":-0.143,"rankPct":0.0,"shap":0.0},{"num":5,"name":"メイショウシュート","score":0.258,"gap":0.144,"pace":0.5,"jvScore":0.28,"weightZ":1.286,"rankPct":0.0,"shap":0.0},{"num":7,"name":"アグネスサンキ","score":0.229,"gap":-0.134,"pace":0.5,"jvScore":0.28,"weightZ":-0.857,"rankPct":0.0,"shap":0.0},{"num":6,"name":"ヒマリン","score":0.191,"gap":0.053,"pace":0.5,"jvScore":0.28,"weightZ":0.571,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"5-6-8","p":0.00406,"ev":0.0238,"kelly":"¥100","mode":"A","topEv":true},{"combo":"4-5-8","p":6e-05,"ev":0.0084,"kelly":"¥100","mode":"A"},{"combo":"5-8-10","p":0.0067,"ev":-0.0671,"kelly":"¥100","mode":"A"},{"combo":"4-6-8","p":4e-05,"ev":-0.0837,"kelly":"¥100","mode":"A"},{"combo":"4-5-6","p":0.00203,"ev":-0.099,"kelly":"¥100","mode":"A"},{"combo":"1-4-8","p":0.00596,"estOdds":117.5,"gap":8.624,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"3-4-8","p":0.00596,"estOdds":117.4,"gap":8.508,"kelly":"—","mode":"B","highOdds":true},{"combo":"1-3-4","p":0.00595,"estOdds":117.6,"gap":8.399,"kelly":"—","mode":"B","highOdds":true}],"explanation":"【高配当チャンス】荒れスコア6900% (C〜B級(C), 頭数10頭, 荒れ69点, 1番人気2.8倍)。軸候補: サトノロワ（10番） スコア0.273高配当狙い: 1-4-8 推定118倍園田 ダート1400m 稍。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202650060403","name":"園田3R C3一","meta":"園田 / ダート1400m / 稍","badge":"nar","time":"11:40","field":10,"raceClass":"C310","track":"園田","raceNo":3,"chaosScore":74,"isHighChaos":true,"chaosLevel":"🔥高配当","isHighOddsTarget":true,"hotReasons":["C〜B級(C)","頭数10頭","荒れ74点","1番人気3.0倍"],"horses":[{"num":4,"name":"サファリ","score":0.296,"gap":0.156,"pace":0.5,"jvScore":0.28,"weightZ":1.813,"rankPct":0.0,"shap":0.0},{"num":7,"name":"ラスアルハイマ","score":0.214,"gap":-0.039,"pace":0.5,"jvScore":0.28,"weightZ":0.236,"rankPct":0.0,"shap":0.0},{"num":3,"name":"フルリール","score":0.171,"gap":-0.037,"pace":0.5,"jvScore":0.28,"weightZ":0.236,"rankPct":0.0,"shap":0.0},{"num":2,"name":"グランロゼ","score":0.157,"gap":-0.037,"pace":0.5,"jvScore":0.28,"weightZ":0.236,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"4-8-9","p":0.00213,"ev":-0.16,"kelly":"¥100","mode":"A","topEv":true},{"combo":"1-4-9","p":0.00213,"ev":-0.16,"kelly":"¥100","mode":"A"},{"combo":"2-4-9","p":0.03366,"ev":-0.1636,"kelly":"¥100","mode":"A"},{"combo":"3-4-9","p":0.03742,"ev":-0.1639,"kelly":"¥100","mode":"A"},{"combo":"4-7-9","p":0.05007,"ev":-0.1652,"kelly":"¥200","mode":"A"},{"combo":"5-6-8","p":0.00606,"estOdds":115.6,"gap":6.761,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"1-5-6","p":0.00606,"estOdds":115.6,"gap":6.757,"kelly":"—","mode":"B","highOdds":true},{"combo":"1-6-8","p":0.00608,"estOdds":115.2,"gap":6.636,"kelly":"—","mode":"B","highOdds":true}],"explanation":"【高配当チャンス】荒れスコア7400% (C〜B級(C), 頭数10頭, 荒れ74点, 1番人気3.0倍)。軸候補: サファリ（4番） スコア0.296高配当狙い: 5-6-8 推定116倍園田 ダート1400m 稍。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202650060404","name":"園田4R 奥海ダッシュ3歳C2","meta":"園田 / ダート820m / 稍","badge":"nar","time":"12:10","field":12,"raceClass":"C212","track":"園田","raceNo":4,"chaosScore":57,"isHighChaos":false,"chaosLevel":"⚡中配当","isHighOddsTarget":false,"hotReasons":["C〜B級(C)","頭数12頭"],"horses":[{"num":4,"name":"ララヴァニーユ","score":0.459,"gap":0.088,"pace":0.5,"jvScore":0.28,"weightZ":0.603,"rankPct":0.0,"shap":0.0},{"num":5,"name":"サフラナール","score":0.21,"gap":-0.052,"pace":0.5,"jvScore":0.28,"weightZ":-0.302,"rankPct":0.0,"shap":0.0},{"num":12,"name":"ミッドナイトフライ","score":0.151,"gap":-0.048,"pace":0.5,"jvScore":0.28,"weightZ":-0.302,"rankPct":0.0,"shap":0.0},{"num":11,"name":"スカイライズ","score":0.071,"gap":-0.044,"pace":0.5,"jvScore":0.28,"weightZ":-0.302,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"3-4-7","p":0.00043,"ev":0.0899,"kelly":"¥100","mode":"A","topEv":true},{"combo":"3-7-10","p":0.0,"ev":-0.0566,"kelly":"¥100","mode":"A"},{"combo":"1-3-7","p":0.0,"ev":-0.0568,"kelly":"¥100","mode":"A"},{"combo":"3-6-7","p":0.0,"ev":-0.0568,"kelly":"¥100","mode":"A"},{"combo":"3-7-8","p":2e-05,"ev":-0.0581,"kelly":"¥100","mode":"A"},{"combo":"3-9-10","p":0.0034,"estOdds":205.7,"gap":9.142,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"1-3-10","p":0.00341,"estOdds":205.3,"gap":8.932,"kelly":"—","mode":"B","highOdds":true},{"combo":"3-6-10","p":0.00342,"estOdds":205.0,"gap":8.763,"kelly":"—","mode":"B","highOdds":true}],"explanation":"軸候補: ララヴァニーユ（4番） スコア0.459高配当狙い: 3-9-10 推定206倍園田 ダート820m 稍。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202650060405","name":"園田5R 大垣内7ハロンC1二","meta":"園田 / ダート1400m / 稍","badge":"nar","time":"12:40","field":112,"raceClass":"C112","track":"園田","raceNo":5,"chaosScore":0,"isHighChaos":false,"chaosLevel":"取得中","isHighOddsTarget":false,"hotReasons":[],"horses":[],"tickets":[],"explanation":"園田 ダート1400m 稍。払戻率70.0%。","shapFeats":[],"noData":true},{"id":"202650060406","name":"園田6R C2二","meta":"園田 / ダート1400m / 稍","badge":"nar","time":"13:10","field":10,"raceClass":"C210","track":"園田","raceNo":6,"chaosScore":54,"isHighChaos":false,"chaosLevel":"⚡中配当","isHighOddsTarget":false,"hotReasons":["C〜B級(C)","頭数10頭"],"horses":[{"num":9,"name":"エポエポサン","score":0.489,"gap":-0.129,"pace":0.5,"jvScore":0.28,"weightZ":-0.905,"rankPct":0.0,"shap":0.0},{"num":8,"name":"ミヤグリフォン","score":0.306,"gap":0.127,"pace":0.5,"jvScore":0.28,"weightZ":0.603,"rankPct":0.0,"shap":0.0},{"num":1,"name":"マットーネロッソ","score":0.089,"gap":0.098,"pace":0.5,"jvScore":0.28,"weightZ":0.603,"rankPct":0.0,"shap":0.0},{"num":4,"name":"ワンダーキュイラス","score":0.061,"gap":-0.068,"pace":0.5,"jvScore":0.28,"weightZ":-0.905,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"1-2-8","p":0.00556,"ev":0.1119,"kelly":"¥100","mode":"A","topEv":true},{"combo":"2-5-8","p":0.00011,"ev":0.1004,"kelly":"¥100","mode":"A"},{"combo":"2-3-8","p":0.00011,"ev":0.1004,"kelly":"¥100","mode":"A"},{"combo":"1-2-5","p":2e-05,"ev":0.0604,"kelly":"¥100","mode":"A"},{"combo":"1-2-3","p":2e-05,"ev":0.0604,"kelly":"¥100","mode":"A"},{"combo":"3-5-6","p":0.00576,"estOdds":121.5,"gap":11.042,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"3-5-7","p":0.00577,"estOdds":121.2,"gap":10.706,"kelly":"—","mode":"B","highOdds":true},{"combo":"2-3-5","p":0.00586,"estOdds":119.4,"gap":9.841,"kelly":"—","mode":"B","highOdds":true}],"explanation":"軸候補: エポエポサン（9番） スコア0.489高配当狙い: 3-5-6 推定122倍園田 ダート1400m 稍。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202650060407","name":"園田7R C2一","meta":"園田 / ダート1400m / 稍","badge":"nar","time":"13:40","field":10,"raceClass":"C210","track":"園田","raceNo":7,"chaosScore":62,"isHighChaos":true,"chaosLevel":"🔥高配当","isHighOddsTarget":true,"hotReasons":["C〜B級(C)","頭数10頭","荒れ62点"],"horses":[{"num":4,"name":"デイムサンライズ","score":0.445,"gap":0.221,"pace":0.5,"jvScore":0.28,"weightZ":1.545,"rankPct":0.0,"shap":0.0},{"num":8,"name":"アースグレーザー","score":0.34,"gap":-0.222,"pace":0.5,"jvScore":0.28,"weightZ":-1.182,"rankPct":0.0,"shap":0.0},{"num":6,"name":"ノリウッドテール","score":0.073,"gap":0.05,"pace":0.5,"jvScore":0.28,"weightZ":0.636,"rankPct":0.0,"shap":0.0},{"num":10,"name":"レディーペガサス","score":0.049,"gap":0.049,"pace":0.5,"jvScore":0.28,"weightZ":0.636,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"4-6-10","p":0.02234,"ev":0.003,"kelly":"¥100","mode":"A","topEv":true},{"combo":"2-4-6","p":0.0104,"ev":0.0004,"kelly":"¥100","mode":"A"},{"combo":"4-6-7","p":0.0022,"ev":-0.0011,"kelly":"¥100","mode":"A"},{"combo":"1-4-6","p":0.00125,"ev":-0.0013,"kelly":"¥100","mode":"A"},{"combo":"2-4-10","p":0.00671,"ev":-0.0028,"kelly":"¥100","mode":"A"},{"combo":"1-5-7","p":0.00581,"estOdds":120.6,"gap":9.797,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"1-2-5","p":0.00592,"estOdds":118.1,"gap":8.271,"kelly":"—","mode":"B","highOdds":true},{"combo":"1-5-9","p":0.00591,"estOdds":118.5,"gap":8.198,"kelly":"—","mode":"B","highOdds":true}],"explanation":"【高配当チャンス】荒れスコア6200% (C〜B級(C), 頭数10頭, 荒れ62点)。軸候補: デイムサンライズ（4番） スコア0.445高配当狙い: 1-5-7 推定121倍園田 ダート1400m 稍。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202650060408","name":"園田8R C2","meta":"園田 / ダート1700m / 稍","badge":"nar","time":"14:10","field":10,"raceClass":"C210","track":"園田","raceNo":8,"chaosScore":49,"isHighChaos":false,"chaosLevel":"⚡中配当","isHighOddsTarget":false,"hotReasons":["C〜B級(C)","頭数10頭"],"horses":[{"num":2,"name":"タガノディオーサ","score":0.675,"gap":0.087,"pace":0.5,"jvScore":0.28,"weightZ":0.306,"rankPct":0.0,"shap":0.0},{"num":10,"name":"パフオブウインド","score":0.164,"gap":-0.16,"pace":0.5,"jvScore":0.28,"weightZ":-1.225,"rankPct":0.0,"shap":0.0},{"num":5,"name":"ザタイムズ","score":0.076,"gap":0.031,"pace":0.5,"jvScore":0.28,"weightZ":0.306,"rankPct":0.0,"shap":0.0},{"num":1,"name":"サンウイング","score":0.02,"gap":-0.077,"pace":0.5,"jvScore":0.28,"weightZ":-0.714,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"2-6-9","p":0.00656,"ev":0.066,"kelly":"¥100","mode":"A","topEv":true},{"combo":"2-5-6","p":0.03008,"ev":0.0245,"kelly":"¥100","mode":"A"},{"combo":"2-3-6","p":0.00177,"ev":0.0126,"kelly":"¥100","mode":"A"},{"combo":"5-6-9","p":0.00017,"ev":-0.0323,"kelly":"¥100","mode":"A"},{"combo":"3-6-9","p":1e-05,"ev":-0.0345,"kelly":"¥100","mode":"A"},{"combo":"3-4-8","p":0.0056,"estOdds":125.0,"gap":9.844,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"4-6-8","p":0.00568,"estOdds":123.2,"gap":8.755,"kelly":"—","mode":"B","highOdds":true},{"combo":"4-8-9","p":0.00568,"estOdds":123.2,"gap":8.608,"kelly":"—","mode":"B","highOdds":true}],"explanation":"軸候補: タガノディオーサ（2番） スコア0.675高配当狙い: 3-4-8 推定125倍園田 ダート1700m 稍。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202650060409","name":"園田9R C1一","meta":"園田 / ダート1400m / 稍","badge":"nar","time":"14:45","field":12,"raceClass":"C112","track":"園田","raceNo":9,"chaosScore":57,"isHighChaos":false,"chaosLevel":"⚡中配当","isHighOddsTarget":false,"hotReasons":["C〜B級(C)","頭数12頭"],"horses":[{"num":1,"name":"ヴァラール","score":0.55,"gap":0.08,"pace":0.5,"jvScore":0.28,"weightZ":0.447,"rankPct":0.0,"shap":0.0},{"num":10,"name":"アンノドミニ","score":0.136,"gap":-0.117,"pace":0.5,"jvScore":0.28,"weightZ":-0.894,"rankPct":0.0,"shap":0.0},{"num":8,"name":"ファンシンレディー","score":0.088,"gap":0.04,"pace":0.5,"jvScore":0.28,"weightZ":0.447,"rankPct":0.0,"shap":0.0},{"num":4,"name":"モンサンオブライト","score":0.076,"gap":-0.109,"pace":0.5,"jvScore":0.28,"weightZ":-0.894,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"1-5-12","p":0.00119,"ev":0.0724,"kelly":"¥100","mode":"A","topEv":true},{"combo":"5-8-12","p":8e-05,"ev":0.0059,"kelly":"¥100","mode":"A"},{"combo":"5-7-12","p":1e-05,"ev":0.0027,"kelly":"¥100","mode":"A"},{"combo":"2-5-12","p":1e-05,"ev":0.0027,"kelly":"¥100","mode":"A"},{"combo":"1-8-12","p":0.03986,"ev":-0.0423,"kelly":"¥100","mode":"A"},{"combo":"2-3-5","p":0.00339,"estOdds":206.5,"gap":9.256,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"3-5-7","p":0.0034,"estOdds":206.2,"gap":9.141,"kelly":"—","mode":"B","highOdds":true},{"combo":"3-5-6","p":0.0034,"estOdds":206.1,"gap":8.989,"kelly":"—","mode":"B","highOdds":true}],"explanation":"軸候補: ヴァラール（1番） スコア0.550高配当狙い: 2-3-5 推定206倍園田 ダート1400m 稍。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202650060410","name":"園田10R JRA交流 氷ノ山特別","meta":"園田 / ダート1400m / 稍","badge":"nar","time":"15:20","field":11,"raceClass":"","track":"園田","raceNo":10,"chaosScore":39,"isHighChaos":false,"chaosLevel":"普通","isHighOddsTarget":false,"hotReasons":["C〜B級(other)","頭数11頭"],"horses":[{"num":8,"name":"セヴェンヌ","score":0.67,"gap":0.034,"pace":0.5,"jvScore":0.28,"weightZ":0.201,"rankPct":0.0,"shap":0.0},{"num":1,"name":"モカプウイング","score":0.071,"gap":0.012,"pace":0.5,"jvScore":0.28,"weightZ":0.201,"rankPct":0.0,"shap":0.0},{"num":6,"name":"スカイノハル","score":0.063,"gap":-0.155,"pace":0.5,"jvScore":0.28,"weightZ":-1.275,"rankPct":0.0,"shap":0.0},{"num":9,"name":"スズカローズキング","score":0.047,"gap":0.012,"pace":0.5,"jvScore":0.28,"weightZ":0.201,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"1-4-8","p":0.04622,"ev":-0.071,"kelly":"¥200","mode":"A","topEv":true},{"combo":"4-8-9","p":0.02917,"ev":-0.0724,"kelly":"¥100","mode":"A"},{"combo":"3-4-8","p":0.02425,"ev":-0.0728,"kelly":"¥100","mode":"A"},{"combo":"4-8-11","p":0.01563,"ev":-0.0734,"kelly":"¥100","mode":"A"},{"combo":"4-8-10","p":0.00656,"ev":-0.0739,"kelly":"¥100","mode":"A"},{"combo":"2-7-10","p":0.00429,"estOdds":163.3,"gap":8.282,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"2-4-7","p":0.00438,"estOdds":159.9,"gap":7.478,"kelly":"—","mode":"B","highOdds":true},{"combo":"2-7-11","p":0.00436,"estOdds":160.7,"gap":7.441,"kelly":"—","mode":"B","highOdds":true}],"explanation":"軸候補: セヴェンヌ（8番） スコア0.670高配当狙い: 2-7-10 推定163倍園田 ダート1400m 稍。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202650060411","name":"園田11R 六甲盃重賞","meta":"園田 / ダート1870m / 稍","badge":"nar","time":"15:55","field":10,"raceClass":"重賞","track":"園田","raceNo":11,"chaosScore":19,"isHighChaos":false,"chaosLevel":"普通","isHighOddsTarget":false,"hotReasons":["頭数10頭"],"horses":[{"num":2,"name":"シンメデージー","score":0.516,"gap":-0.0,"pace":0.5,"jvScore":0.28,"weightZ":0.0,"rankPct":0.0,"shap":0.0},{"num":7,"name":"ダンテバローズ","score":0.199,"gap":-0.0,"pace":0.5,"jvScore":0.28,"weightZ":0.0,"rankPct":0.0,"shap":0.0},{"num":6,"name":"エイシンレオ","score":0.133,"gap":-0.0,"pace":0.5,"jvScore":0.28,"weightZ":0.0,"rankPct":0.0,"shap":0.0},{"num":4,"name":"ミックファイア","score":0.084,"gap":-0.0,"pace":0.5,"jvScore":0.28,"weightZ":0.0,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"3-4-7","p":0.00064,"ev":-0.3,"kelly":"¥100","mode":"A","topEv":true},{"combo":"7-8-9","p":3e-05,"ev":-0.3,"kelly":"¥100","mode":"A"},{"combo":"1-3-4","p":1e-05,"ev":-0.3,"kelly":"¥100","mode":"A"},{"combo":"1-3-5","p":0.0,"ev":-0.3,"kelly":"¥100","mode":"A"},{"combo":"1-4-6","p":0.00049,"ev":-0.3,"kelly":"¥100","mode":"A"},{"combo":"3-5-9","p":0.00579,"estOdds":120.9,"gap":9.889,"kelly":"—","mode":"B","highOdds":true,"topGap":true},{"combo":"1-5-9","p":0.0058,"estOdds":120.7,"gap":9.681,"kelly":"—","mode":"B","highOdds":true},{"combo":"1-3-9","p":0.0058,"estOdds":120.7,"gap":9.627,"kelly":"—","mode":"B","highOdds":true}],"explanation":"軸候補: シンメデージー（2番） スコア0.516高配当狙い: 3-5-9 推定121倍園田 ダート1870m 稍。払戻率70.0%。","shapFeats":[],"noData":false},{"id":"202650060412","name":"園田12R 青馬ひすみ☆配信記念4thB1","meta":"園田 / ダート1400m / 稍","badge":"nar","time":"16:30","field":3,"raceClass":"B112","track":"園田","raceNo":12,"chaosScore":62,"isHighChaos":true,"chaosLevel":"🔥高配当","isHighOddsTarget":false,"hotReasons":["C〜B級(B)","荒れ62点","1番人気3.3倍"],"horses":[{"num":11,"name":"エイシンアニーモ","score":0.641,"gap":-0.184,"pace":0.5,"jvScore":0.28,"weightZ":-0.707,"rankPct":0.0,"shap":0.0},{"num":8,"name":"グッドハビッツ","score":0.325,"gap":0.206,"pace":0.5,"jvScore":0.28,"weightZ":1.414,"rankPct":0.0,"shap":0.0},{"num":2,"name":"サンライズガッツ","score":0.034,"gap":-0.065,"pace":0.5,"jvScore":0.28,"weightZ":-0.707,"rankPct":0.0,"shap":0.0}],"tickets":[{"combo":"2-8-11","p":1.0,"ev":-0.3,"kelly":"¥5000","mode":"A","topEv":true}],"explanation":"軸候補: エイシンアニーモ（11番） スコア0.641園田 ダート1400m 稍。払戻率70.0%。","shapFeats":[],"noData":false}];
+const HIT_RECORDS = [{"date":"2026-06-04","race":"名古屋12R 金シャチ最終戦(C)","result":"1-5-6","payout":23360,"chaosScore":76,"notes":"chaos76点で高配当チャンス選別✅ / 買い目に1-5-6は未含❌ / 参照事例","detected":false}];
 const WEEKLY_ROI = [0.0];
+if(typeof TOMORROW_RACES==="undefined"){var TOMORROW_RACES=[];}
+const NUM_COLORS=["#E53E3E","#3182CE","#38A169","#D69E2E","#805AD5","#319795","#DD6B20","#718096","#E53E3E","#3182CE","#38A169","#D69E2E","#805AD5","#319795","#DD6B20","#718096","#E53E3E","#3182CE"];
+let currentMode="A";
 
-const GLOBAL_SHAP = [
-  { name: 'agari3f_z', val: 0.31 },
-  { name: 'style_score_wavg3', val: 0.27 },
-  { name: 'speed_idx_class_z', val: 0.24 },
-  { name: 'same_course_dist_roi', val: 0.21 },
-  { name: 'rest_rbf_14/21', val: 0.19 },
-  { name: 'jockey_cond_bayes', val: 0.17 },
-  { name: 'odds_drift_30min', val: 0.15 },
-  { name: 'course_geom_score', val: 0.13 },
-  { name: 'horse_weight_diff', val: 0.11 },
-  { name: 'trend_slope_5r', val: 0.09 },
-];
-
-const DRIFT_DATA = [
-  { name: 'win_odds_dist', psi: 0.04 },
-  { name: 'agari3f_z_dist', psi: 0.07 },
-  { name: 'model_score_dist', psi: 0.09 },
-  { name: 'rest_days_dist', psi: 0.13 },
-  { name: 'field_size_dist', psi: 0.06 },
-];
-
-// num colors
-const NUM_COLORS = [
-  '#e05252','#5b8dee','#4caf7d','#e8c96a','#a66dd4',
-  '#5bbde8','#e87c5b','#b0b0b0','#e05252','#5b8dee',
-  '#4caf7d','#e8c96a','#a66dd4','#5bbde8','#e87c5b',
-  '#b0b0b0','#e05252','#5b8dee'
-];
-
-// ===== 的中事例データ（払戻金額が確認できた事実のみ）=====
-// 払戻不明の推定的中は含めない。実際に的中確認できた場合のみ追加。
-const HIT_RECORDS = [{"date": "2026-06-04", "race": "名古屋12R 金シャチ最終戦(C)", "result": "1-5-6", "payout": 23360, "chaosScore": 76, "notes": "chaos76点で高配当チャンス選別✅ / 買い目に1-5-6は未含❌ / 参照事例", "detected": false}];
-
-// ===== 現在のモード =====
-let currentMode = 'A';   // 'A' = 本命, 'B' = 高配当
-
-// ===== RENDER =====
-function renderRaces() {
-  const grid = document.getElementById('race-grid');
-  grid.innerHTML = '';
-
-  let displayRaces = RACES;
-  // 高配当モード: chaosScore >= 40 のレースのみ、chaosScore降順
-  if (currentMode === 'B') {
-    displayRaces = RACES
-      .filter(r => (r.chaosScore || 0) >= 40)
-      .sort((a,b) => (b.chaosScore||0) - (a.chaosScore||0));
-  }
-
-  if (displayRaces.length === 0) {
-    grid.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">本日は高配当チャンスレースがありません</div>';
-    return;
-  }
-
-  displayRaces.forEach(r => {
-    const card = document.createElement('div');
-    const isHighChaos = (r.chaosScore || 0) >= 60;
-    const isMidChaos  = (r.chaosScore || 0) >= 40;
-    card.className = 'race-card' + (isHighChaos ? ' chaos-high' : isMidChaos ? ' chaos-mid' : '');
-    card.id = 'card-' + r.id;
-    card.onclick = () => selectRace(r);
-
-    // 高配当チャンスレースを金色ボーダーで強調（高配当モード時）
-    if (currentMode === 'B' && isHighChaos) {
-      card.style.borderColor = 'var(--gold)';
-      card.style.boxShadow = '0 0 12px rgba(201,168,76,0.15)';
+function sw(name,btn){
+  document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".main-tab").forEach(t=>t.classList.remove("active"));
+  document.getElementById("tab-"+name).classList.add("active");
+  btn.classList.add("active");
+}
+function setMode(m){
+  currentMode=m;
+  document.getElementById("bma").className="mode-btn"+(m==="A"?" act-a":"");
+  document.getElementById("bmb").className="mode-btn"+(m==="B"?" act-b":"");
+  document.getElementById("mdesc").textContent=m==="A"?"全レース / Harville EV重視":"荒れ40点以上のみ / gap重視";
+  renderVenuePanels();
+}
+function renderVenueTabs(){
+  const tracks=[...new Set(RACES.map(r=>r.track).filter(Boolean))];
+  document.getElementById("vtabs").innerHTML=tracks.map((t,i)=>
+    `<button class="vtab${i===0?" active":""}" onclick="switchV('${t}',this)">${t}</button>`
+  ).join("");
+  renderVenuePanels();
+}
+function switchV(track,btn){
+  document.querySelectorAll(".vtab").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  document.querySelectorAll(".vpanel").forEach(p=>p.classList.remove("active"));
+  const p=document.getElementById("vp-"+track);
+  if(p)p.classList.add("active");
+}
+function renderVenuePanels(){
+  const tracks=[...new Set(RACES.map(r=>r.track).filter(Boolean))];
+  const pe=document.getElementById("vpanels");
+  pe.innerHTML="";
+  tracks.forEach((track,ti)=>{
+    let races=RACES.filter(r=>r.track===track);
+    if(currentMode==="B")races=races.filter(r=>(r.chaosScore||0)>=40);
+    const div=document.createElement("div");
+    div.className="vpanel"+(ti===0?" active":"");
+    div.id="vp-"+track;
+    if(!races.length){
+      div.innerHTML='<div style="color:var(--text3);padding:20px;text-align:center">高配当チャンスレースなし</div>';
+    }else{
+      div.innerHTML='<div class="races-list">'+races.map(buildCard).join("")+"</div>";
     }
-
-    // 荒れバッジ
-    const chaosBadge = isHighChaos
-      ? `<span style="background:rgba(201,168,76,0.15);color:var(--gold);border:1px solid var(--gold);
-           border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700;">🔥 荒れ${r.chaosScore}点</span>`
-      : isMidChaos
-      ? `<span style="background:rgba(180,180,180,0.1);color:#aaa;border:1px solid #555;
-           border-radius:10px;padding:2px 8px;font-size:10px;">⚡ 荒れ${r.chaosScore}点</span>`
-      : `<span style="color:var(--text3);font-size:10px;">荒れ${r.chaosScore||0}点</span>`;
-
-    // 荒れゲージ
-    const gaugeColor = isHighChaos ? 'var(--gold)' : isMidChaos ? '#aaa' : 'var(--accent)';
-    const gaugePct   = Math.min(r.chaosScore || 0, 100);
-
-    // チケット表示
-    const ticketsA = (r.tickets||[]).filter(t => t.mode!=='B').slice(0,3);
-    const ticketsB = (r.tickets||[]).filter(t => t.mode==='B').slice(0,3);
-
-    card.innerHTML = `
-      <div class="race-card-head">
-        <div style="flex:1;min-width:0;">
-          <div class="race-name">${r.name}</div>
-          <div class="race-meta">${r.meta} / ${r.time} / ${r.field}頭</div>
-          <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
-            ${chaosBadge}
-          </div>
-        </div>
-        <span class="race-badge badge-${r.badge}">${(r.badge||'').toUpperCase()}</span>
-      </div>
-
-      <!-- 荒れ度メーター -->
-      <div style="margin:8px 0 2px;display:flex;align-items:center;gap:8px;">
-        <div style="font-size:10px;color:var(--text3);white-space:nowrap;">荒れ度</div>
-        <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
-          <div style="height:100%;width:${gaugePct}%;background:${gaugeColor};border-radius:3px;
-               transition:width 0.6s ease;"></div>
-        </div>
-        <div style="font-size:10px;color:${gaugeColor};font-family:'DM Mono',monospace;white-space:nowrap;">
-          ${gaugePct}/100
-        </div>
-      </div>
-
-      <div class="race-card-body">
-        <div class="horse-rows">
-          ${(r.horses||[]).slice(0,3).map(h => `
-            <div class="horse-row">
-              <div class="horse-num" style="background:${NUM_COLORS[(h.num-1)%18]}22;color:${NUM_COLORS[(h.num-1)%18]};border:1px solid ${NUM_COLORS[(h.num-1)%18]}44">${h.num}</div>
-              <div class="horse-name">${h.name}</div>
-              <div class="horse-score" style="color:var(--gold)">${(h.score||0).toFixed(2)}</div>
-              ${h.gap !== undefined ? `<div style="font-size:10px;color:${h.gap>0.3?'#4caf7d':h.gap<-0.3?'var(--red)':'var(--text3)'}">gap${h.gap>=0?'+':''}${(h.gap||0).toFixed(2)}</div>` : ''}
-              <div class="shap-bar-wrap"><div class="shap-bar" style="width:${(h.shap||0)/0.5*100}%"></div></div>
-            </div>
-          `).join('')}
-        </div>
-
-        <!-- システムA買い目 -->
-        ${ticketsA.length > 0 ? `
-        <div class="ticket-label">🎯 本命推奨（EV順）</div>
-        <div class="tickets">
-          ${ticketsA.map(t => `
-            <div class="ticket${t.topEv?' top-ev':''}">
-              <div class="ticket-combo">${t.combo}</div>
-              <div class="ticket-p">${((t.p||0)*100).toFixed(1)}%</div>
-              <div class="ticket-ev ${(t.ev||0)>0?'ev-pos':'ev-neg'}">EV ${(t.ev||0)>0?'+':''}${(t.ev||0).toFixed(3)}</div>
-              <div class="ticket-kelly">${t.kelly||'—'}</div>
-            </div>
-          `).join('')}
-        </div>` : ''}
-
-        <!-- システムB買い目（高配当モードか荒れスコア高い場合） -->
-        ${ticketsB.length > 0 && (currentMode==='B' || isHighChaos) ? `
-        <div class="ticket-label" style="color:var(--gold);margin-top:10px;">💰 高配当狙い（gap順）</div>
-        <div class="tickets">
-          ${ticketsB.map(t => `
-            <div class="ticket" style="border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.04);">
-              <div class="ticket-combo" style="color:var(--gold)">${t.combo}</div>
-              <div class="ticket-p">≈${(t.estOdds||0).toFixed(0)}倍</div>
-              <div class="ticket-ev" style="color:var(--gold)">gap+${(t.gap||0).toFixed(2)}</div>
-              <div class="ticket-kelly" style="font-size:9px;color:var(--text3);">${
-                t.estOdds >= 200 ? '200倍〜' :
-                t.estOdds >= 100 ? '100〜200倍' :
-                t.estOdds >= 50  ? '50〜100倍' : '〜50倍'
-              }</div>
-            </div>
-          `).join('')}
-        </div>` : ''}
-      </div>
-    `;
-    grid.appendChild(card);
+    pe.appendChild(div);
   });
 }
-
-function setMode(mode) {
-  currentMode = mode;
-  // ボタンのスタイル切り替え
-  const btnA = document.getElementById('btn-mode-a');
-  const btnB = document.getElementById('btn-mode-b');
-  const desc = document.getElementById('mode-desc');
-  const title = document.getElementById('section-title-races');
-  if (mode === 'A') {
-    btnA.style.background = 'var(--accent)'; btnA.style.color = '#fff';
-    btnB.style.background = 'transparent';   btnB.style.color = 'var(--gold)';
-    desc.textContent = '全レース表示 / EV重視';
-    if (title) title.textContent = '本日の3連複予測（本命モード）';
-    document.body.style.setProperty('--accent', '#5b8dee');
-  } else {
-    btnA.style.background = 'transparent';   btnA.style.color = 'var(--accent)';
-    btnB.style.background = 'var(--gold)';   btnB.style.color = '#000';
-    desc.textContent = '荒れスコア40点以上のレースのみ表示 / gap重視';
-    if (title) title.textContent = '高配当チャンスレース（💰高配当モード）';
-  }
-  renderRaces();
-}
-
-function selectRace(r) {
-  document.querySelectorAll('.race-card').forEach(c => c.classList.remove('selected'));
-  document.getElementById('card-' + r.id).classList.add('selected');
-
-  document.getElementById('detail-title').textContent = r.name;
-  document.getElementById('detail-badges').innerHTML = `
-    <span class="race-badge badge-${r.badge}">${r.badge.toUpperCase()}</span>
-    <span class="race-badge badge-ev">PL-Exact</span>
-  `;
-
-  const isHC = (r.chaosScore||0) >= 60;
-  const isMC = (r.chaosScore||0) >= 40;
-  const chaosColor = isHC ? 'var(--gold)' : isMC ? '#aaa' : 'var(--text3)';
-  const ticketsA = (r.tickets||[]).filter(t=>t.mode!=='B');
-  const ticketsB = (r.tickets||[]).filter(t=>t.mode==='B');
-
-  document.getElementById('detail-body').innerHTML = `
-    <div class="explanation">${r.explanation||''}</div>
-
-    <!-- 荒れスコア詳細 -->
-    <div style="background:var(--bg2);border:1px solid ${chaosColor}33;border-radius:10px;padding:14px;margin-bottom:16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <div style="font-size:12px;font-weight:600;color:${chaosColor};">
-          ${isHC ? '🔥 高配当チャンス' : isMC ? '⚡ 中配当チャンス' : '荒れスコア'}
-        </div>
-        <div style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace;color:${chaosColor};">
-          ${r.chaosScore||0}<span style="font-size:12px;"> / 100</span>
-        </div>
-      </div>
-      <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
-        <div style="height:100%;width:${Math.min(r.chaosScore||0,100)}%;background:${chaosColor};border-radius:4px;"></div>
-      </div>
-      <div style="margin-top:8px;font-size:11px;color:var(--text3);">
-        ${(r.hotReasons||[]).join(' / ') || '通常レース'}
-      </div>
+function buildCard(r){
+  const cs=r.chaosScore||0;
+  const isHC=cs>=60,isMC=cs>=40;
+  const cc=isHC?"var(--red)":isMC?"var(--gold)":"var(--gray)";
+  const cbadge=isHC?`<span class="badge b-chH">🔥 高配当${cs}点</span>`
+    :isMC?`<span class="badge b-chM">⚡ ${cs}点</span>`
+    :`<span class="badge b-chL">${cs}点</span>`;
+  if(r.noData){return `<div class="rcard nodata">
+    <div class="rhead">
+      <div><div class="rtitle"><strong>${r.raceNo}R</strong>${(r.name||"").split("R").slice(1).join("R").trim()}</div>
+      <div class="rmeta">${r.meta||""} / ${r.time||"—"} / ${r.field}頭</div></div>
+      <span class="badge b-${(r.badge||"nar").replace("-","")}">${(r.badge||"NAR").toUpperCase()}</span>
     </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
-      <div>
-        <div class="ticket-label" style="margin-bottom:10px;">🎯 本命推奨（EV順）</div>
-        <div class="tickets">
-          ${ticketsA.length ? ticketsA.map(t => `
-            <div class="ticket${t.topEv?' top-ev':''}">
-              <div class="ticket-combo">${t.combo}</div>
-              <div class="ticket-p">${((t.p||0)*100).toFixed(1)}%</div>
-              <div class="ticket-ev ${(t.ev||0)>0?'ev-pos':'ev-neg'}">EV ${(t.ev||0)>0?'+':''}${(t.ev||0).toFixed(3)}</div>
-              <div class="ticket-kelly">${t.kelly||'—'}</div>
-            </div>
-          `).join('') : '<div style="color:var(--text3);font-size:12px;padding:8px;">候補なし</div>'}
-        </div>
-        ${ticketsB.length ? `
-        <div class="ticket-label" style="color:var(--gold);margin-top:14px;margin-bottom:10px;">💰 高配当狙い（gap順）</div>
-        <div class="tickets">
-          ${ticketsB.map(t => `
-            <div class="ticket" style="border-color:rgba(201,168,76,0.5);background:rgba(201,168,76,0.06);">
-              <div class="ticket-combo" style="color:var(--gold);font-size:15px;">${t.combo}</div>
-              <div class="ticket-p" style="color:var(--gold);">≈${(t.estOdds||0).toFixed(0)}倍</div>
-              <div class="ticket-ev" style="color:var(--gold);">gap+${(t.gap||0).toFixed(2)}</div>
-              <div class="ticket-kelly" style="font-size:9px;">${
-                (t.estOdds||0)>=200?'200倍〜':(t.estOdds||0)>=100?'100〜200倍':(t.estOdds||0)>=50?'50〜100倍':'〜50倍'
-              }</div>
-            </div>
-          `).join('')}
-        </div>` : ''}
-      </div>
-      <div>
-        <div class="ticket-label" style="margin-bottom:10px;">SHAP根拠（軸馬）</div>
-        <div class="shap-list">
-          ${(r.shapFeats||[]).map(f => `
-            <div class="shap-item">
-              <div class="shap-feat">${f.name}</div>
-              <div class="shap-track"><div class="shap-fill ${f.dir}" style="width:${Math.abs(f.val)/0.5*100}%"></div></div>
-              <div class="shap-val ${f.dir}">${f.dir==='pos'?'+':''}${f.val.toFixed(2)}</div>
-            </div>
-          `).join('')}
-        </div>
-        <div style="margin-top:14px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;line-height:1.7;">
-          <div>確率エンジン: Plackett-Luce exact</div>
-          <div>EV式: p × display_odds − 1.0</div>
-          <div>賭け金: Half-Kelly × 上限1%/レース</div>
-          ${r.badge==='nar'||r.badge==='nar-nanka'?`<div style="color:var(--gold)">払戻率: ${r.badge==='nar-nanka'?'72.5%（南関東）':'70.0%（NAR）'}</div>`:'<div>払戻率: JRA 75% 適用</div>'}
-        </div>
-      </div>
+    <div class="ndcard"><div class="spin"></div><div style="font-size:12px">出走表取得中</div></div>
+  </div>`;}
+  const tA=(r.tickets||[]).filter(t=>t.mode==="A");
+  const tB=(r.tickets||[]).filter(t=>t.mode==="B");
+  const showB=tB.length>0&&(currentMode==="B"||isHC||isMC);
+  const horsesHtml=(r.horses||[]).slice(0,3).map(h=>{
+    const gc=h.gap>0.3?"gp":h.gap<-0.3?"gn":"gz";
+    const gs=h.gap!==undefined?(h.gap>=0?"+":"")+h.gap.toFixed(2):"";
+    return `<div class="hrow">
+      <div class="hnum" style="background:${NUM_COLORS[(h.num-1)%18]}22;color:${NUM_COLORS[(h.num-1)%18]}">${h.num}</div>
+      <div class="hname">${h.name}</div>
+      <div class="hscore">${(h.score||0).toFixed(3)}</div>
+      <div class="hgap ${gc}">${gs}</div>
+    </div>`;
+  }).join("");
+  const aHtml=tA.slice(0,3).map((t,i)=>{
+    const ec=(t.ev||0)>0?"ep":(t.ev||0)<-0.05?"en":"eu";
+    const es=(t.ev||0)>=0?`EV +${(t.ev||0).toFixed(3)}`:`EV ${(t.ev||0).toFixed(3)}`;
+    return `<div class="trow${i===0?" ta":""}">
+      <div class="tcombo">${t.combo}</div>
+      <div class="tev ${ec}">${es}</div>
+      <div class="tkelly">${t.kelly||"—"}</div>
+    </div>`;
+  }).join("");
+  const bHtml=showB?tB.slice(0,3).map(t=>{
+    const band=t.estOdds>=200?"200倍〜":t.estOdds>=100?"100〜200倍":t.estOdds>=50?"50〜100倍":"〜50倍";
+    return `<div class="trow tb">
+      <div class="tcombo bc">${t.combo}</div>
+      <div class="tgap">gap ${t.gap>=0?"+":""}${(t.gap||0).toFixed(2)}</div>
+      <div class="todds">≈${(t.estOdds||0).toFixed(0)}倍</div>
+      <div class="tband">${band}</div>
+    </div>`;
+  }).join(""):"";
+  const bname=(r.badge||"nar").replace("-","");
+  return `<div class="rcard${isHC?" hc":""}">
+  <div class="rhead">
+    <div style="flex:1;min-width:0">
+      <div class="rtitle"><strong style="font-size:16px">${r.raceNo}R</strong> ${(r.name||"").split("R").slice(1).join("R").trim()}</div>
+      <div class="rmeta">${r.meta||""} / ${r.time||"—"} / ${r.field}頭</div>
+      <div class="rbadges">${cbadge}</div>
     </div>
-  `;
-  document.getElementById('detail-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    <div style="text-align:right;flex-shrink:0">
+      <span class="badge b-${bname}">${(r.badge||"").toUpperCase()}</span>
+      <div class="cmeter"><div class="ctrack"><div class="cfill" style="width:${Math.min(cs,100)}%;background:${cc}"></div></div>
+      <div class="clabel" style="color:${cc}">${cs}</div></div>
+    </div>
+  </div>
+  <div class="rbody">
+    <div>
+      <div class="slabel">予測上位3頭</div>
+      ${horsesHtml||'<div style="font-size:12px;color:var(--text3);padding:6px">データ取得中</div>'}
+    </div>
+    <div>
+      ${aHtml?`<div class="slabel"><span class="badge b-a">🎯 本命</span> EV順</div><div class="tlist">${aHtml}</div>`:""}
+      ${bHtml?`<div class="slabel" style="margin-top:9px"><span class="badge b-b">💰 高配当</span> gap順</div><div class="tlist">${bHtml}</div>`:""}
+    </div>
+  </div>
+</div>`;
 }
-
-function renderROIChart() {
-  const wrap = document.getElementById('roi-chart');
-  const maxV = Math.max(...WEEKLY_ROI);
-  const minV = Math.min(...WEEKLY_ROI);
-  const h = 100;
-  WEEKLY_ROI.forEach((v, i) => {
-    const barH = Math.max(4, ((v - 60) / (maxV - 60)) * h);
-    const div = document.createElement('div');
-    div.className = 'chart-bar-wrap';
-    div.innerHTML = `
-      <div class="chart-bar ${v>=90?'pos':'neg'}" style="height:${barH}px;"></div>
-      <div class="chart-xlabel">W${i+1}</div>
-    `;
-    wrap.appendChild(div);
-  });
-}
-
-function renderSlice() {
-  const tbody = document.getElementById('slice-tbody');
-  SLICE_DATA.forEach(row => {
-    const roiClass = row.roi >= 95 ? 'good' : row.roi >= 85 ? 'mid' : 'bad';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${row.surface}</td>
-      <td>${row.dist}</td>
-      <td>${row.cnt}</td>
-      <td class="roi-cell ${roiClass}">${row.roi.toFixed(1)}%</td>
-      <td>${row.hit.toFixed(1)}%</td>
-      <td class="${row.ev>0.08?'roi-cell good':''}">${row.ev>0?'+':''}${row.ev.toFixed(3)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function renderGlobalShap() {
-  const el = document.getElementById('shap-global');
-  const max = GLOBAL_SHAP[0].val;
-  GLOBAL_SHAP.forEach(f => {
-    const div = document.createElement('div');
-    div.className = 'shap-item';
-    div.innerHTML = `
-      <div class="shap-feat">${f.name}</div>
-      <div class="shap-track"><div class="shap-fill pos" style="width:${f.val/max*100}%"></div></div>
-      <div class="shap-val pos">+${f.val.toFixed(2)}</div>
-    `;
-    el.appendChild(div);
-  });
-}
-
-function renderDrift() {
-  const el = document.getElementById('drift-list');
-  DRIFT_DATA.forEach(d => {
-    const isWarn = d.psi >= 0.10;
-    const div = document.createElement('div');
-    div.className = 'drift-row';
-    div.innerHTML = `
-      <div class="drift-feat">${d.name}</div>
-      <div class="drift-bar-wrap"><div class="drift-bar ${isWarn?'warn':''}" style="width:${Math.min(100,d.psi/0.25*100)}%"></div></div>
-      <div class="drift-psi" style="color:${isWarn?'var(--gold)':'var(--green)'}">${d.psi.toFixed(2)}</div>
-      <div style="font-size:10px;font-family:'DM Mono',monospace;color:${isWarn?'var(--gold)':'var(--green)'};">${isWarn?'注意':'正常'}</div>
-    `;
-    el.appendChild(div);
-  });
-}
-
-function switchTab(name) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  event.target.classList.add('active');
-}
-
-function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent =
-    now.toTimeString().slice(0,8);
-  document.getElementById('today-date').textContent =
-    now.toLocaleDateString('ja-JP', {year:'numeric',month:'2-digit',day:'2-digit'});
-  document.getElementById('update-time').textContent =
-    now.toLocaleDateString('ja-JP',{month:'2-digit',day:'2-digit'}) + ' 05:30 自動更新済';
-}
-
-// ===== 的中事例レンダリング =====
-function renderHits() {
-  const list = document.getElementById('hits-list');
-  if (!list) return;
-
-  // 確認済み的中（detected=true）とゼロ
-  const confirmedHits = HIT_RECORDS.filter(h => h.detected);
-  const refs          = HIT_RECORDS.filter(h => !h.detected);
-
-  let html = '';
-
-  // まだ的中なし表示
-  if (confirmedHits.length === 0) {
-    html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center;margin-bottom:16px;">
-      <div style="font-size:16px;margin-bottom:8px;">🎯 まだ的中事例なし</div>
-      <div style="font-size:12px;color:var(--text3);">本日 2026-06-04 より計測開始。<br>実際に払戻が確認できた場合のみここに追加されます。</div>
-    </div>`;
-  }
-
-  // 参照事例（detected=false）
-  if (refs.length > 0) {
-    html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;padding:0 4px;">
-      📋 参照事例（高配当チャンス選別済みだが買い目には未含）
-    </div>`;
-  }
-
-  const allRecords = [...confirmedHits, ...refs];
-  html += allRecords.map(h => `
-      <div style="background:var(--bg2);border:1px solid ${h.detected?'var(--gold)':'var(--border)'};
-           border-radius:12px;padding:16px;margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-          <div>
-            <div style="font-size:13px;font-weight:600;">${h.race}</div>
-            <div style="font-size:11px;color:var(--text3);">${h.date}</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:20px;font-weight:700;color:var(--gold);font-family:'DM Mono',monospace;">
-              ¥${h.payout.toLocaleString()}
-            </div>
-            <div style="font-size:11px;color:var(--text3);">
-              ${(h.payout/100).toFixed(0)}倍 / ${h.result}
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <span style="background:rgba(201,168,76,0.15);color:var(--gold);border:1px solid var(--gold);
-               border-radius:8px;padding:2px 8px;font-size:10px;">
-            荒れ${h.chaosScore}点
-          </span>
-          ${h.detected
-            ? '<span style="background:rgba(76,175,125,0.15);color:var(--green);border:1px solid var(--green);border-radius:8px;padding:2px 8px;font-size:10px;">✅ システムB検出</span>'
-            : '<span style="background:rgba(180,0,0,0.1);color:#ff6b6b;border:1px solid #ff6b6b33;border-radius:8px;padding:2px 8px;font-size:10px;">⚠️ 未検出（参照事例）</span>'}
-          <span style="font-size:11px;color:var(--text3);">${h.notes}</span>
+function renderHits(){
+  const el=document.getElementById("hits-list");if(!el)return;
+  const conf=HIT_RECORDS.filter(h=>h.detected);
+  const refs=HIT_RECORDS.filter(h=>!h.detected);
+  let html="";
+  if(!conf.length)html+=`<div class="hitcard" style="text-align:center;padding:28px">
+    <div style="font-size:20px;margin-bottom:8px">🎯</div>
+    <div style="font-size:14px;font-weight:700;margin-bottom:5px">まだ的中事例なし</div>
+    <div style="font-size:12px;color:var(--text3)">本日 2026-06-04 より計測開始<br>払戻確認できた場合のみ追加されます</div>
+  </div>`;
+  if(refs.length){
+    html+=`<div style="font-size:11px;color:var(--text3);margin:10px 0 5px">📋 参照事例（高配当チャンス選別済み・買い目未含）</div>`;
+    html+=refs.map(h=>`<div class="hitcard ref">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><div style="font-weight:700">${h.race}</div><div style="font-size:11px;color:var(--text3)">${h.date}</div></div>
+        <div style="text-align:right">
+          <div style="font-size:18px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">¥${h.payout.toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--text3)">${(h.payout/100).toFixed(0)}倍 / ${h.result}</div>
         </div>
       </div>
-    `).join('');
-  list.innerHTML = html;
+      <div style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+        <span class="badge b-chH">🔥 ${h.chaosScore}点</span>
+        <span style="font-size:11px;color:var(--text3)">${h.notes}</span>
+      </div>
+    </div>`).join("");
+  }
+  el.innerHTML=html;
 }
-
-// ===== 明日の予測 =====
-if (typeof TOMORROW_RACES === 'undefined') { var TOMORROW_RACES = []; }
-
-function renderTomorrow() {
-  const schedEl = document.getElementById('tomorrow-schedule');
-  const racesEl = document.getElementById('tomorrow-races');
-  if (!schedEl || !racesEl) return;
-
-  const schedInfo = [
-    { org:'JRA', tracks:['東京','阪神'], note:'土曜開催' },
-    { org:'NAR', tracks:['大井','盛岡','笠松','佐賀'], note:'夜間開催含む' },
+function renderROI(){
+  const el=document.getElementById("rchart");if(!el)return;
+  const data=WEEKLY_ROI.length?WEEKLY_ROI:[0];
+  const mv=Math.max(...data,100);
+  el.innerHTML=data.map((v,i)=>`<div class="cbwrap"><div class="cbar ${v>=90?"pos":"neg"}" style="height:${Math.max(3,(v/mv)*80)}px"></div></div>`).join("");
+  document.getElementById("rlabels").innerHTML=data.map((_,i)=>`<div class="cbwrap"><div class="cxl">W${i+1}</div></div>`).join("");
+  document.getElementById("troibody").innerHTML=`
+    <tr><td>名古屋</td><td style="font-family:'DM Mono'">5R</td><td>0R</td><td class="rn">—</td></tr>
+    <tr><td>園田</td><td style="font-family:'DM Mono'">11R</td><td>6R</td><td class="rn">—</td></tr>`;
+  document.getElementById("croibody").innerHTML=`
+    <tr><td>🔥 60点+</td><td>6R</td><td>2R</td><td class="rn">—</td></tr>
+    <tr><td>⚡ 40-59点</td><td>9R</td><td>4R</td><td class="rn">—</td></tr>
+    <tr><td>40点未満</td><td>9R</td><td>0R</td><td class="rn">—</td></tr>`;
+}
+function renderTomorrow(){
+  const d=new Date();d.setDate(d.getDate()+1);
+  const ds=d.toLocaleDateString("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit"});
+  document.getElementById("tmr-date").textContent=ds;
+  const schedInfo=[
+    {org:"JRA",color:"#15803D",tracks:["東京","阪神"],note:"土曜開催"},
+    {org:"NAR",color:"#1a1a2e",tracks:["大井","盛岡","笠松","佐賀"],note:"夜間開催含む"},
   ];
-  schedEl.innerHTML = schedInfo.map(s => {
-    const badge = s.org === 'JRA'
-      ? '<span style="background:#2a4a8a;color:#fff;padding:1px 7px;border-radius:8px;font-size:10px;margin-right:6px;">JRA</span>'
-      : '<span style="background:#8a2a2a;color:#fff;padding:1px 7px;border-radius:8px;font-size:10px;margin-right:6px;">NAR</span>';
-    return `<div>${badge} ${s.tracks.join('・')} <span style="color:var(--text3);font-size:11px;">${s.note}</span></div>`;
-  }).join('');
-
-  if (!TOMORROW_RACES || TOMORROW_RACES.length === 0) {
-    racesEl.innerHTML = `
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:32px;text-align:center;">
-        <div style="font-size:22px;margin-bottom:12px;">⏳</div>
-        <div style="font-size:14px;font-weight:600;margin-bottom:8px;">出走表取得中</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.8;">
-          明日 2026-06-05 の出走表は<br>
-          毎朝 5:30 の自動更新で取得・予測生成されます。
-        </div>
-        <div style="margin-top:16px;padding:12px;background:var(--bg1);border-radius:8px;font-size:11px;color:var(--text3);">
-          予定開催: 東京・阪神（JRA）/ 大井・盛岡・笠松・佐賀（NAR）
-        </div>
-      </div>`;
-  } else {
-    TOMORROW_RACES.forEach(r => {
-      const card = document.createElement('div');
-      card.className = 'race-card';
-      card.onclick = () => selectRace(r);
-      const cs = r.chaosScore || 0;
-      const cc = cs>=60?'var(--gold)':cs>=40?'#aaa':'var(--text3)';
-      card.innerHTML = `
-        <div class="race-card-head">
-          <div><div class="race-name">${r.name}</div><div class="race-meta">${r.meta} / ${r.time}</div></div>
-          <span class="race-badge badge-${r.badge||'nar'}">${(r.badge||'').toUpperCase()}</span>
-        </div>
-        <div style="margin:4px 0;display:flex;align-items:center;gap:8px;">
-          <div style="flex:1;height:4px;background:var(--border);border-radius:2px;">
-            <div style="height:100%;width:${Math.min(cs,100)}%;background:${cc};border-radius:2px;"></div>
-          </div>
-          <div style="font-size:10px;color:${cc}">${cs}点</div>
-        </div>`;
-      racesEl.appendChild(card);
-    });
+  document.getElementById("tmr-sched").innerHTML=schedInfo.map(s=>
+    `<div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
+      <span class="badge" style="background:${s.color};color:#fff">${s.org}</span>
+      ${s.tracks.join("・")} <span style="font-size:10px;color:var(--text3)">${s.note}</span>
+    </div>`).join("");
+  if(!TOMORROW_RACES||!TOMORROW_RACES.length){
+    document.getElementById("tmr-races").innerHTML=`<div class="waitcard">
+      <div style="font-size:24px;margin-bottom:10px">⏳</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px">出走表取得中</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.8">毎朝 5:30 の自動更新で取得・予測生成されます</div>
+    </div>`;
   }
 }
-
-// INIT
-renderRaces();
-renderROIChart();
-renderSlice();
-renderGlobalShap();
-renderDrift();
-renderHits();
-renderTomorrow();
-updateClock();
-setInterval(updateClock, 1000);
-
-// auto-select first race
-setTimeout(() => {
-  if (RACES && RACES.length > 0) selectRace(RACES[0]);
-}, 400);
+function updateClock(){
+  const n=new Date();
+  document.getElementById("clock").textContent=n.toTimeString().slice(0,8);
+  document.getElementById("today-date").textContent=n.toLocaleDateString("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit"});
+  document.getElementById("update-time").textContent=n.toLocaleDateString("ja-JP",{month:"2-digit",day:"2-digit"})+" 05:30";
+}
+renderVenueTabs();renderHits();renderROI();renderTomorrow();updateClock();setInterval(updateClock,1000);
 </script>
 </body>
 </html>

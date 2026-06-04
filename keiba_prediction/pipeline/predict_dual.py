@@ -147,15 +147,36 @@ def _predict_one_race(race: dict, date_str: str) -> Optional[dict]:
                 ORDER BY draw_number
             """, (race_id,)).fetchall()
 
+    # データ不足の場合はプレースホルダーカードを返す
     if not horses_db or len(horses_db) < 3:
-        return None
+        return {
+            "race_id":    race_id, "race_name": race_name, "track": track,
+            "race_no":    race_no, "surface": surface, "distance": distance,
+            "going":      going, "field_size": field_size or 12, "payback": payback,
+            "race_class": race_class, "post_time": post_time,
+            "chaos":      {"chaos_score": 0, "is_high_chaos": False,
+                           "is_mid_chaos": False, "level": "取得中"},
+            "is_high_odds_target": False, "hot_reasons": [],
+            "system_a": [], "system_b": [], "horses": [],
+            "no_data":   True,  # プレースホルダーフラグ
+        }
 
     hdf = pd.DataFrame([dict(h) for h in horses_db])
     hdf["win_odds"] = pd.to_numeric(hdf["win_odds"], errors="coerce")
     hdf = hdf[hdf["win_odds"].notna() & (hdf["win_odds"] > 0)].copy()
 
     if len(hdf) < 3:
-        return None
+        return {
+            "race_id":    race_id, "race_name": race_name, "track": track,
+            "race_no":    race_no, "surface": surface, "distance": distance,
+            "going":      going, "field_size": field_size or 12, "payback": payback,
+            "race_class": race_class, "post_time": post_time,
+            "chaos":      {"chaos_score": 0, "is_high_chaos": False,
+                           "is_mid_chaos": False, "level": "取得中"},
+            "is_high_odds_target": False, "hot_reasons": [],
+            "system_a": [], "system_b": [], "horses": [],
+            "no_data":   True,
+        }
 
     win_odds_arr = hdf["win_odds"].values
     n_horses     = len(hdf)
@@ -384,19 +405,21 @@ def _to_html_format(race_data: list[dict], date_str: str) -> list[dict]:
         if rd["track"] in ("大井", "川崎", "船橋", "浦和"):
             badge = "nar-nanka"
 
-        # 説明文
         top = rd["horses"][0] if rd["horses"] else {}
         exp = _make_dual_explanation(rd, top)
+        no_data = rd.get("no_data", False)
 
         races.append({
             "id":           rd["race_id"],
             "name":         f"{rd['track']}{rd['race_no']}R {rd['race_name']}",
             "meta":         f"{rd['track']} / {rd['surface']}{rd['distance']}m / {rd['going']}",
             "badge":        badge,
-            "time":         rd["post_time"],
+            "time":         rd.get("post_time") or "—",
             "field":        rd["field_size"],
-            "raceClass":    rd["race_class"],
-            "chaosScore":   int(chaos["chaos_score"]),   # 0-100点
+            "raceClass":    rd.get("race_class", ""),
+            "track":        rd["track"],
+            "raceNo":       rd["race_no"],
+            "chaosScore":   int(chaos["chaos_score"]),
             "isHighChaos":  bool(chaos["is_high_chaos"]),
             "chaosLevel":   chaos.get("level", "普通"),
             "isHighOddsTarget": rd["is_high_odds_target"],
@@ -405,6 +428,7 @@ def _to_html_format(race_data: list[dict], date_str: str) -> list[dict]:
             "tickets":      tickets,
             "explanation":  exp,
             "shapFeats":    [],
+            "noData":       no_data,
         })
 
     return races
