@@ -136,9 +136,10 @@ def step2_build_features() -> int:
 
         with get_conn() as conn:
             for row in rows:
+                # 42列: id(NULL) + race_id〜as_of_date の41列
                 conn.execute("""
                     INSERT OR REPLACE INTO training_features
-                    VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, (
                     row["race_id"], row["race_date"], row["horse_id"],
                     row["draw_number"], row["finish_position"], row["relevance"],
@@ -190,6 +191,7 @@ def _compute_race_features(race_id: str, race_date: str, race_info: dict) -> lis
         if not entries:
             return []
 
+        entries = [dict(e) for e in entries]  # sqlite3.Row → dict に変換
         # 同レースの上がり3F（グループ内z-score計算用）
         agari_vals = [e["agari3f_seconds"] for e in entries if e["agari3f_seconds"]]
         agari_mean = np.mean(agari_vals) if agari_vals else None

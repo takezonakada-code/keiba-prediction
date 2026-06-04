@@ -44,9 +44,7 @@ def jockey_track_winrate(
         return _global_jockey_winrate(as_of_date, prior_m, conn)
 
     from db.database import get_conn as _get_conn
-    ctx = conn if conn is not None else _get_conn().__enter__()
-
-    try:
+    with _get_conn() as ctx:
         # このコース×この騎手の成績
         row = ctx.execute("""
             SELECT COUNT(*) as cnt,
@@ -65,10 +63,6 @@ def jockey_track_winrate(
             WHERE jockey_id = ? AND race_date < ? AND finish_position IS NOT NULL
         """, (jockey_id, as_of_date)).fetchone()
 
-    finally:
-        if conn is None:
-            ctx.__exit__(None, None, None)
-
     cnt    = row["cnt"]    or 0
     wins   = row["wins"]   or 0
     g_cnt  = g_row["cnt"]  or 1
@@ -81,15 +75,11 @@ def jockey_track_winrate(
 def _global_jockey_winrate(as_of_date: str, m: float, conn=None) -> float:
     """jockey_id が不明なときの全体平均を返す。"""
     from db.database import get_conn as _get_conn
-    ctx = conn if conn is not None else _get_conn().__enter__()
-    try:
+    with _get_conn() as ctx:
         row = ctx.execute("""
             SELECT AVG(CASE WHEN finish_position = 1 THEN 1.0 ELSE 0.0 END) as wr
             FROM nar_results WHERE race_date < ? AND finish_position IS NOT NULL
         """, (as_of_date,)).fetchone()
-    finally:
-        if conn is None:
-            ctx.__exit__(None, None, None)
     return float(row["wr"] or 0.10)
 
 
@@ -114,16 +104,12 @@ def relative_weight_score(
     DataFrame: race_id, draw_number, weight_z, weight_rank_pct
     """
     from db.database import get_conn as _get_conn
-    ctx = conn if conn is not None else _get_conn().__enter__()
-    try:
+    with _get_conn() as ctx:
         rows = ctx.execute("""
             SELECT draw_number, weight_carried
             FROM nar_results
             WHERE race_id = ? AND weight_carried IS NOT NULL
         """, (race_id,)).fetchall()
-    finally:
-        if conn is None:
-            ctx.__exit__(None, None, None)
 
     if not rows:
         return pd.DataFrame(columns=["race_id", "draw_number",
@@ -153,17 +139,13 @@ def batch_relative_weight(
 ) -> pd.DataFrame:
     """複数レース一括で相対斤量スコアを計算。"""
     from db.database import get_conn as _get_conn
-    ctx = conn if conn is not None else _get_conn().__enter__()
-    try:
+    with _get_conn() as ctx:
         placeholders = ",".join("?" * len(race_ids))
         rows = ctx.execute(f"""
             SELECT race_id, draw_number, weight_carried
             FROM nar_results
             WHERE race_id IN ({placeholders}) AND weight_carried IS NOT NULL
         """, race_ids).fetchall()
-    finally:
-        if conn is None:
-            ctx.__exit__(None, None, None)
 
     if not rows:
         return pd.DataFrame()
@@ -209,8 +191,7 @@ def frontrun_score(
     style_score_c4 は予測精度に直結する。
     """
     from db.database import get_conn as _get_conn
-    ctx = conn if conn is not None else _get_conn().__enter__()
-    try:
+    with _get_conn() as ctx:
         rows = ctx.execute("""
             SELECT nr.corner4_pos, rc.field_size
             FROM nar_results nr
@@ -221,9 +202,6 @@ def frontrun_score(
             ORDER BY nr.race_date DESC
             LIMIT ?
         """, (horse_id, as_of_date, n_recent)).fetchall()
-    finally:
-        if conn is None:
-            ctx.__exit__(None, None, None)
 
     if not rows:
         return {"style_score_c4": None, "style_vol_c4": None, "front_pct": None}
@@ -288,8 +266,7 @@ def class_upset_rates(
     dict: {class_name: {"upset_rate": float, "n_races": int}}
     """
     from db.database import get_conn as _get_conn
-    ctx = conn if conn is not None else _get_conn().__enter__()
-    try:
+    with _get_conn() as ctx:
         rows = ctx.execute("""
             SELECT rc.race_class,
                    COUNT(DISTINCT rc.race_id) as n_races,
@@ -302,9 +279,6 @@ def class_upset_rates(
             WHERE rc.race_date < ? AND nr.finish_position IS NOT NULL
             GROUP BY rc.race_class
         """, (as_of_date,)).fetchall()
-    finally:
-        if conn is None:
-            ctx.__exit__(None, None, None)
 
     result: dict[str, dict] = {}
     class_buckets: dict[str, list] = {}
