@@ -15,6 +15,7 @@ import pandas as pd
 
 from config import KELLY_CAP_PER_RACE
 from data.scraper import NetkeibaStaticScraper, NetkeibaPlaywrightScraper
+from data.nar_scraper import NARScraper
 from db.database import get_conn, init_db, DB_PATH
 from evaluation.drift_monitor import DriftMonitor
 from evaluation.shap_explainer import build_shap_summary
@@ -110,12 +111,15 @@ def run_daily(target_date: date | None = None) -> None:
     # ── 9. ドリフト監視 ──────────────────────────
     _run_drift_check(df, scraping_success_rate)
 
-    # ── 10. HTML生成 ─────────────────────────────
+    # ── 10. NAR全場データ取得 ────────────────────
+    _run_nar_scraping(target_date)
+
+    # ── 11. HTML生成 ─────────────────────────────
     races_data = _build_races_json(df, all_bets, date_str)
     roi_data   = _load_roi_stats()
     generate_html(date_str, races_data, roi_data)
 
-    # ── 11. GitHub push ───────────────────────────
+    # ── 12. GitHub push ───────────────────────────
     _git_push(date_str)
 
     print(f"完了: 推奨買い目 {len(all_bets)} 点")
@@ -490,6 +494,16 @@ def _save_recommended_bets(bets: list[dict]) -> None:
                 (b["race_id"], b["combo"], b["horse_ids"],
                  b["p_hit"], b["display_odds"], b["ev"], b["kelly_frac"], b["stake"]),
             )
+
+
+def _run_nar_scraping(target_date: date) -> None:
+    """NAR全場の今日のレースを取得してDBに保存。失敗しても継続。"""
+    try:
+        scraper = NARScraper(sleep_sec=2.5, max_retry=3)
+        stats = scraper.run_today(target_date)
+        print(f"[NAR] 取得完了: {stats}")
+    except Exception as e:
+        print(f"[NAR] 取得失敗（処理は継続）: {e}")
 
 
 def _run_drift_check(df: pd.DataFrame, scraping_success_rate: float) -> None:

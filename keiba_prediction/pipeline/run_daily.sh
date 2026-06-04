@@ -2,7 +2,7 @@
 # 毎朝5:30 launchdから呼ばれるエントリポイント
 # PATH を明示的に設定（launchdは通常のPATHを引き継がない）
 
-export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Developer/CommandLineTools/usr/bin"
+export PATH="/Users/takezo/miniforge3/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Developer/CommandLineTools/usr/bin"
 export HOME="/Users/takezo"
 export LANG="ja_JP.UTF-8"
 
@@ -16,8 +16,8 @@ echo "=== $(date '+%Y-%m-%d %H:%M:%S') 開始 ===" >> "$LOG_FILE"
 # プロジェクトディレクトリへ移動
 cd "$HOME/競馬_3連複/keiba_prediction" || exit 1
 
-# Python実行（システムPythonを使用）
-/Library/Developer/CommandLineTools/usr/bin/python3 -m pipeline.daily_update >> "$LOG_FILE" 2>&1
+# Python実行（miniforge3 の Python を使用）
+/Users/takezo/miniforge3/bin/python -m pipeline.daily_update >> "$LOG_FILE" 2>&1
 
 EXIT_CODE=$?
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') 終了 (exit: $EXIT_CODE) ===" >> "$LOG_FILE"

@@ -208,6 +208,154 @@ GROUP BY month
 ORDER BY month;
 
 -- ──────────────────────────────────────────────────
+-- NAR専用テーブル
+-- ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS nar_races (
+    race_id         TEXT PRIMARY KEY,
+    race_date       TEXT NOT NULL,
+    track           TEXT NOT NULL,
+    track_code      TEXT NOT NULL,
+    race_no         INTEGER NOT NULL,
+    race_name       TEXT,
+    surface         TEXT,              -- 芝/ダート/ばんえい/障害
+    distance        INTEGER,
+    course_dir      TEXT,              -- 右/左/直
+    track_condition TEXT,              -- 良/稍重/重/不良
+    weather         TEXT,
+    field_size      INTEGER,
+    race_class      TEXT,
+    post_time       TEXT,              -- "14:15"
+    race_type       TEXT DEFAULT 'flat', -- flat/banei
+    payback_rate    REAL,              -- 場別控除後払戻率
+    organizer       TEXT DEFAULT 'NAR',
+    as_of_date      TEXT DEFAULT (date('now')), -- データリーク防止
+    created_at      TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS nar_results (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    race_id             TEXT NOT NULL,
+    race_date           TEXT NOT NULL,
+    horse_id            TEXT,
+    horse_name          TEXT,
+    draw_number         INTEGER,
+    frame_number        INTEGER,
+    jockey_id           TEXT,
+    jockey_name         TEXT,
+    trainer_id          TEXT,
+    trainer_name        TEXT,
+    sex                 TEXT,
+    age                 INTEGER,
+    weight_carried      REAL,          -- 斤量
+    horse_weight        INTEGER,
+    horse_weight_diff   INTEGER,
+    finish_position     INTEGER,       -- NULL=取消/除外
+    race_time_seconds   REAL,
+    agari3f_seconds     REAL,
+    corner1_pos         INTEGER,
+    corner2_pos         INTEGER,
+    corner3_pos         INTEGER,
+    corner4_pos         INTEGER,
+    win_odds            REAL,
+    popular_rank        INTEGER,
+    race_type           TEXT DEFAULT 'flat',
+    as_of_date          TEXT DEFAULT (date('now')),
+    created_at          TEXT DEFAULT (datetime('now')),
+    UNIQUE(race_id, draw_number)
+);
+
+CREATE TABLE IF NOT EXISTS nar_entries (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    race_id             TEXT NOT NULL,
+    race_date           TEXT NOT NULL,
+    horse_id            TEXT,
+    horse_name          TEXT,
+    draw_number         INTEGER,
+    frame_number        INTEGER,
+    jockey_id           TEXT,
+    jockey_name         TEXT,
+    trainer_id          TEXT,
+    horse_weight        INTEGER,
+    horse_weight_diff   INTEGER,
+    win_odds            REAL,
+    popular_rank        INTEGER,
+    race_type           TEXT DEFAULT 'flat',
+    as_of_date          TEXT DEFAULT (date('now')),
+    created_at          TEXT DEFAULT (datetime('now')),
+    UNIQUE(race_id, draw_number)
+);
+
+CREATE TABLE IF NOT EXISTS nar_payouts (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    race_id         TEXT NOT NULL,
+    race_date       TEXT NOT NULL,
+    bet_type        TEXT NOT NULL,     -- 'trio'
+    combo           TEXT NOT NULL,     -- "1-3-7"
+    payout          INTEGER,           -- 払戻金額（円・100円単位）
+    popular_info    TEXT,
+    as_of_date      TEXT DEFAULT (date('now')),
+    created_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(race_id, bet_type, combo)
+);
+
+-- ばんえい専用（帯広のみ）
+CREATE TABLE IF NOT EXISTS banei_results (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    race_id         TEXT NOT NULL,
+    race_date       TEXT NOT NULL,
+    horse_id        TEXT,
+    horse_name      TEXT,
+    draw_number     INTEGER,
+    finish_position INTEGER,
+    race_time_seconds REAL,
+    win_odds        REAL,
+    popular_rank    INTEGER,
+    as_of_date      TEXT DEFAULT (date('now')),
+    created_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(race_id, draw_number)
+);
+
+-- ──────────────────────────────────────────────────
+-- スクレイピング進捗管理（途中再開用）
+-- ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS scraping_progress (
+    race_id     TEXT PRIMARY KEY,
+    status      TEXT NOT NULL,         -- done/error/in_progress
+    updated_at  TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS historical_progress (
+    day_key       TEXT PRIMARY KEY,    -- "YYYY-MM-DD|ALL" or "YYYY-MM-DD|43_46"
+    race_date     TEXT NOT NULL,
+    status        TEXT NOT NULL,       -- done/error
+    success_count INTEGER DEFAULT 0,
+    failure_count INTEGER DEFAULT 0,
+    error_message TEXT,
+    updated_at    TEXT DEFAULT (datetime('now'))
+);
+
+-- ──────────────────────────────────────────────────
+-- NARデータ用ビュー
+-- ──────────────────────────────────────────────────
+CREATE VIEW IF NOT EXISTS nar_trio_ev AS
+SELECT
+    p.race_id,
+    p.race_date,
+    r.track,
+    r.surface,
+    r.distance,
+    r.track_condition,
+    r.race_class,
+    p.combo,
+    p.payout,
+    r.payback_rate,
+    ROUND(1.0 / (p.payout / 100.0), 4) AS implied_prob
+FROM nar_payouts p
+JOIN nar_races r ON p.race_id = r.race_id
+WHERE p.bet_type = 'trio'
+  AND p.payout > 0;
+
+-- ──────────────────────────────────────────────────
 -- インデックス
 -- ──────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_entries_race      ON entries(race_id);
@@ -215,3 +363,7 @@ CREATE INDEX IF NOT EXISTS idx_entries_horse     ON entries(horse_id);
 CREATE INDEX IF NOT EXISTS idx_past_horse_date   ON past_results(horse_id, race_date);
 CREATE INDEX IF NOT EXISTS idx_bet_results_date  ON bet_results(race_date);
 CREATE INDEX IF NOT EXISTS idx_predictions_race  ON predictions(race_id);
+CREATE INDEX IF NOT EXISTS idx_nar_races_date    ON nar_races(race_date);
+CREATE INDEX IF NOT EXISTS idx_nar_results_horse ON nar_results(horse_id, race_date);
+CREATE INDEX IF NOT EXISTS idx_nar_payouts_race  ON nar_payouts(race_id);
+CREATE INDEX IF NOT EXISTS idx_hist_progress     ON historical_progress(race_date);

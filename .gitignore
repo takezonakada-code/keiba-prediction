@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.db-shm
+*.db-wal
+logs/
+.claude/
+keiba_prediction/models/saved/
+*.egg-info/
+.DS_Store
