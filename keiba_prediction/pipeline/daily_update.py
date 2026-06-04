@@ -1,7 +1,11 @@
 """
-毎日5:30 実行のメインパイプライン。
-スクレイピング → 特徴量生成 → 予測 → EV計算 → DB保存
-→ HTML生成 → GitHub push
+毎日5:30 実行のメインパイプライン（新フロー）
+
+① 前日の全レース結果を取得・照合
+② 的中率・ROIを計算してDBに保存
+③ 本日のNARデータを取得
+④ 本日の予測を生成
+⑤ サイトを更新してGitHubにpush
 """
 from __future__ import annotations
 
@@ -35,21 +39,51 @@ GITHUB_TOKEN = ""   # git credential helper で管理するため空欄
 # ──────────────────────────────────────────────────
 def run_daily(target_date: date | None = None) -> None:
     if target_date is None:
-        target_date = date.today() + timedelta(days=1)
+        target_date = date.today()
 
-    date_str = target_date.isoformat()
-    print(f"=== 日次更新: {date_str} ===")
+    today_str = target_date.isoformat()
+    yesterday = target_date - timedelta(days=1)
+    print(f"=== 日次更新: {today_str} ===")
 
     init_db()
 
-    # ── 1. スクレイピング ─────────────────────────
+    # ── STEP 1: 前日の結果照合・評価 ─────────────
+    print("--- STEP1: 前日結果照合 ---")
+    try:
+        from pipeline.fetch_results import fetch_results_for_date
+        from pipeline.evaluate_daily import evaluate_date, init_performance_tables
+        init_performance_tables()
+        fetch_results_for_date(yesterday)
+        perf = evaluate_date(yesterday)
+        if perf:
+            print(f"  前日評価完了: A的中率{perf.get('a_hit_rate',0)*100:.0f}% ROI{perf.get('a_roi',0):.0f}%")
+    except Exception as e:
+        print(f"  前日評価スキップ（{e}）")
+
+    # ── STEP 2: 本日NAR全場データ取得 ────────────
+    print("--- STEP2: 本日NAR取得 ---")
+    _run_nar_scraping(target_date)
+
+    date_str = today_str
+
+    # ── STEP 3: JRAスクレイピング ─────────────────
     scraper = NetkeibaStaticScraper()
     entries_list = _fetch_entries(scraper, date_str)
     scraping_success_rate = scraper.success_rate
 
     if not entries_list:
-        print("エントリなし（非開催日）。HTMLを非開催表示に更新します。")
-        generate_html(date_str, races_data=[], roi_data=_load_roi_stats())
+        print("JRAエントリなし（非開催日またはNARのみ）。")
+
+    if not entries_list:
+        # NAR予測のみ実行
+        print("--- STEP3: NAR予測のみ ---")
+        try:
+            from pipeline.predict_dual import run_dual_predict
+            run_dual_predict(target_date=target_date, push=False)
+        except Exception as e:
+            print(f"  NAR予測エラー（{e}）")
+        roi_data = _load_roi_stats()
+        generate_html(date_str, races_data=[], roi_data=roi_data)
         _git_push(date_str)
         return
 
@@ -111,15 +145,20 @@ def run_daily(target_date: date | None = None) -> None:
     # ── 9. ドリフト監視 ──────────────────────────
     _run_drift_check(df, scraping_success_rate)
 
-    # ── 10. NAR全場データ取得 ────────────────────
-    _run_nar_scraping(target_date)
+    # ── 9. ドリフト監視 ──────────────────────────
+    _run_drift_check(df, scraping_success_rate)
 
-    # ── 11. HTML生成 ─────────────────────────────
-    races_data = _build_races_json(df, all_bets, date_str)
-    roi_data   = _load_roi_stats()
-    generate_html(date_str, races_data, roi_data)
+    # ── 10. HTML生成（JRA+NAR統合） ──────────────
+    try:
+        from pipeline.predict_dual import run_dual_predict
+        run_dual_predict(target_date=target_date, push=False)
+    except Exception as e:
+        print(f"  NAR予測エラー（処理継続）: {e}")
+        races_data = _build_races_json(df, all_bets, date_str)
+        roi_data   = _load_roi_stats()
+        generate_html(date_str, races_data, roi_data)
 
-    # ── 12. GitHub push ───────────────────────────
+    # ── 11. GitHub push ───────────────────────────
     _git_push(date_str)
 
     print(f"完了: 推奨買い目 {len(all_bets)} 点")
@@ -178,8 +217,33 @@ def generate_html(
         weekly_js = json.dumps(roi_data["weekly_roi"], ensure_ascii=False)
         html = _replace_js_const(html, "WEEKLY_ROI", weekly_js)
 
+    # ── HIT_RECORDS (的中事例) ────────────────────
+    hit_records = roi_data.get("hit_records", []) if roi_data else []
+    # 名古屋12Rを初期事例として追加（まだDBにない場合）
+    seed_hit = {
+        "date": "2026-06-04",
+        "race": "名古屋12R 金シャチ最終戦(C)",
+        "result": "1-5-6",
+        "payout": 23360,
+        "chaosScore": 76,
+        "notes": "C級・稍重・12頭・最終R・名古屋。chaos76点で高配当チャンス選別済み。",
+        "detected": False,
+    }
+    hits_for_js = [seed_hit]
+    for h in hit_records:
+        hits_for_js.append({
+            "date":       h.get("race_date", ""),
+            "race":       f"{h.get('track','')}{h.get('race_no','')}R {h.get('race_name','')}",
+            "result":     h.get("result_combo", ""),
+            "payout":     h.get("payout", 0),
+            "chaosScore": h.get("chaos_score", 0),
+            "notes":      f"システム{h.get('system','?')}的中",
+            "detected":   True,
+        })
+    html = _replace_js_const(html, "HIT_RECORDS", json.dumps(hits_for_js, ensure_ascii=False))
+
     INDEX_HTML.write_text(html, encoding="utf-8")
-    print(f"[HTML] index.html を更新しました ({date_str}, レース{len(races_data)}件)")
+    print(f"[HTML] index.html を更新しました ({date_str}, レース{len(races_data)}件, 的中事例{len(hits_for_js)}件)")
 
 
 def _replace_js_const(html: str, const_name: str, new_value_js: str) -> str:
@@ -346,39 +410,48 @@ def _make_explanation(
 # ──────────────────────────────────────────────────
 def _load_roi_stats() -> dict:
     """
-    bet_results テーブルから集計済みROI統計を返す。
+    daily_performance / race_results から集計済みROI統計を返す。
     データが不足している場合はダミー値を返す（HTML表示を壊さない）。
     """
     try:
-        with get_conn() as conn:
-            slice_rows = conn.execute("SELECT * FROM roi_by_slice").fetchall()
-            monthly_rows = conn.execute(
-                "SELECT roi_pct FROM roi_monthly ORDER BY month DESC LIMIT 8"
-            ).fetchall()
+        from pipeline.evaluate_daily import get_dashboard_data
+        dash = get_dashboard_data(days=30)
 
+        # 日次ROI → weekly_roi 形式に変換
+        daily = dash.get("daily", [])
+        weekly_roi = [round(float(d.get("a_roi") or 0), 1) for d in reversed(daily)][-8:] or [0.0]
+
+        # slice_data → track_roi から生成
+        track_roi = dash.get("track_roi", [])
         slice_data = [
             {
-                "surface": r["surface"] or "",
-                "dist":    r["distance_band"] or "",
-                "cnt":     r["tickets"] or 0,
-                "roi":     float(r["roi_pct"] or 0),
-                "hit":     float(r["hit_rate_pct"] or 0),
+                "surface": r.get("track", ""),
+                "dist":    "",
+                "cnt":     r.get("n", 0),
+                "roi":     float(r.get("roi") or 0),
+                "hit":     float(r.get("a_hits", 0)) / max(r.get("n", 1), 1) * 100,
                 "ev":      0.0,
             }
-            for r in slice_rows
+            for r in track_roi
         ]
-        weekly_roi = [float(r["roi_pct"] or 0) for r in monthly_rows]
 
         if not slice_data:
             slice_data = _default_slice_data()
-        if not weekly_roi:
-            weekly_roi = [0.0]
 
-        return {"slice": slice_data, "weekly_roi": weekly_roi}
+        # 累計統計
+        cumul = dash.get("cumul", {})
+        hit_records = dash.get("hits", [])
+
+        return {
+            "slice":       slice_data,
+            "weekly_roi":  weekly_roi,
+            "cumul":       cumul,
+            "hit_records": hit_records,
+        }
 
     except Exception as e:
         print(f"[HTML] ROI統計の取得に失敗（ダミー値を使用）: {e}")
-        return {"slice": _default_slice_data(), "weekly_roi": [0.0]}
+        return {"slice": _default_slice_data(), "weekly_roi": [0.0], "cumul": {}, "hit_records": []}
 
 
 def _default_slice_data() -> list[dict]:

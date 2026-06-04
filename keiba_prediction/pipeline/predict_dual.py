@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -51,6 +51,29 @@ def run_dual_predict(
 
     print(f"=== デュアルモード予測: {date_str} ===")
     init_db()
+
+    # ── STEP 1: 前日結果取得・評価 ───────────────────
+    yesterday = target_date - timedelta(days=1)
+    try:
+        from pipeline.fetch_results import fetch_results_for_date
+        from pipeline.evaluate_daily import evaluate_date, init_performance_tables
+        init_performance_tables()
+        fetch_results_for_date(yesterday)
+        perf = evaluate_date(yesterday)
+        if perf:
+            print(f"  前日評価: A {perf.get('a_hits',0)}/{perf.get('a_races',0)}R "
+                  f"= {perf.get('a_hit_rate',0)*100:.0f}% ROI{perf.get('a_roi',0):.0f}%")
+    except Exception as e:
+        print(f"  前日評価スキップ: {e}")
+
+    # ── STEP 2: 本日NAR全場データ取得 ────────────────
+    try:
+        from data.nar_scraper import NARScraper
+        nar_scraper = NARScraper(sleep_sec=2.0)
+        nar_stats = nar_scraper.run_today(target_date)
+        print(f"  NAR取得: {nar_stats}")
+    except Exception as e:
+        print(f"  NAR取得スキップ: {e}")
 
     with get_conn() as conn:
         races = conn.execute("""

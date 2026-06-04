@@ -17,7 +17,8 @@ echo "=== $(date '+%Y-%m-%d %H:%M:%S') 開始 ===" >> "$LOG_FILE"
 cd "$HOME/競馬_3連複/keiba_prediction" || exit 1
 
 # Python実行（miniforge3 の Python を使用）
-/Users/takezo/miniforge3/bin/python -m pipeline.daily_update >> "$LOG_FILE" 2>&1
+# 新フロー: ①前日評価 → ②NAR取得 → ③JRA取得 → ④予測 → ⑤push
+/Users/takezo/miniforge3/bin/python -u -m pipeline.predict_dual >> "$LOG_FILE" 2>&1
 
 EXIT_CODE=$?
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') 終了 (exit: $EXIT_CODE) ===" >> "$LOG_FILE"

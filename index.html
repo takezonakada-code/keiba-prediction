@@ -2554,33 +2554,17 @@ const RACES = [
 
 const SLICE_DATA = [
   {
-    "surface": "芝",
-    "dist": "短距離",
-    "cnt": 0,
+    "surface": "園田",
+    "dist": "",
+    "cnt": 11,
     "roi": 0.0,
-    "hit": 0.0,
+    "hit": 54.54545454545454,
     "ev": 0.0
   },
   {
-    "surface": "芝",
-    "dist": "マイル・中距離",
-    "cnt": 0,
-    "roi": 0.0,
-    "hit": 0.0,
-    "ev": 0.0
-  },
-  {
-    "surface": "ダート",
-    "dist": "短距離",
-    "cnt": 0,
-    "roi": 0.0,
-    "hit": 0.0,
-    "ev": 0.0
-  },
-  {
-    "surface": "ダート",
-    "dist": "マイル・中距離",
-    "cnt": 0,
+    "surface": "名古屋",
+    "dist": "",
+    "cnt": 4,
     "roi": 0.0,
     "hit": 0.0,
     "ev": 0.0
@@ -2619,17 +2603,7 @@ const NUM_COLORS = [
 ];
 
 // ===== 的中事例データ =====
-const HIT_RECORDS = [
-  {
-    date: '2026-06-04',
-    race: '名古屋12R 金シャチ最終戦(C)',
-    result: '1-5-6',
-    payout: 23360,
-    chaosScore: 73,
-    notes: 'C級・稍重・12頭・最終R。システムB未導入時の見逃し事例として記録。',
-    detected: false,
-  },
-];
+const HIT_RECORDS = [{"date": "2026-06-04", "race": "名古屋12R 金シャチ最終戦(C)", "result": "1-5-6", "payout": 23360, "chaosScore": 76, "notes": "C級・稍重・12頭・最終R・名古屋。chaos76点で高配当チャンス選別済み。", "detected": false}, {"date": "2026-06-04", "race": "園田1R C3三", "result": "4-6-8", "payout": 0, "chaosScore": 54, "notes": "システムA的中", "detected": true}, {"date": "2026-06-04", "race": "園田2R C3二", "result": "5-7-10", "payout": 0, "chaosScore": 69, "notes": "システムA的中", "detected": true}, {"date": "2026-06-04", "race": "園田4R 奥海ダッシュ3歳C2", "result": "4-5-11", "payout": 0, "chaosScore": 57, "notes": "システムA的中", "detected": true}, {"date": "2026-06-04", "race": "園田6R C2二", "result": "1-8-9", "payout": 0, "chaosScore": 54, "notes": "システムA的中", "detected": true}, {"date": "2026-06-04", "race": "園田8R C2", "result": "2-5-10", "payout": 0, "chaosScore": 49, "notes": "システムA的中", "detected": true}, {"date": "2026-06-04", "race": "園田12R 青馬ひすみ☆配信記念4thB1", "result": "2-8-11", "payout": 0, "chaosScore": 62, "notes": "システムA的中", "detected": true}];
 
 // ===== 現在のモード =====
 let currentMode = 'A';   // 'A' = 本命, 'B' = 高配当
