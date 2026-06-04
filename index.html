@@ -670,168 +670,55 @@ header {
 const TODAY = new Date();
 const RACES = [
   {
-    id: 'R01', name: '東京11R 安田記念', meta: '東京 / 芝1600m / 良',
-    badge: 'jra', time: '15:40', field: 16,
-    horses: [
-      { num: 7, name: 'ソングライン', score: 0.89, rankPct: 0.94, shap: 0.42 },
-      { num: 3, name: 'シュネルマイスター', score: 0.81, rankPct: 0.87, shap: 0.35 },
-      { num: 11, name: 'セリフォス', score: 0.74, rankPct: 0.79, shap: 0.28 },
-      { num: 5, name: 'イルーシヴパンサー', score: 0.61, rankPct: 0.65, shap: 0.21 },
-    ],
-    tickets: [
-      { combo: '3-7-11', p: 0.068, ev: 0.142, kelly: '¥310', topEv: true },
-      { combo: '3-7-5',  p: 0.051, ev: 0.093, kelly: '¥210' },
-      { combo: '5-7-11', p: 0.044, ev: 0.071, kelly: '¥180' },
-      { combo: '3-5-11', p: 0.038, ev: 0.045, kelly: '¥140' },
-      { combo: '1-3-7',  p: 0.031, ev: 0.021, kelly: '¥80' },
-    ],
-    explanation: '軸はソングライン（7番）。当日の芝1600m良馬場で相対上がり3Fスコアが出走18頭中1位（agari3f_z: +0.42）、直近3走の4角平均通過位置も上位を維持しており脚質安定度が高い。対抗はシュネルマイスター（3番）で休養後の調教タイムが過去比+0.8秒の仕上がり、ローテーション間隔のRBFスコアがピーク付近の21日。3番手にセリフォス（11番）を据え、コース適性スコア（東京左回り直線525m）が同馬の傾向と一致。Plackett-Luce exact計算でこの3点組み合わせのEVは+0.142。Half-Kellyで310円推奨。',
-    shapFeats: [
-      { name: 'agari3f_z', val: 0.42, dir: 'pos' },
-      { name: 'style_score_wavg3', val: 0.31, dir: 'pos' },
-      { name: 'rest_rbf_21', val: 0.27, dir: 'pos' },
-      { name: 'jockey_course_wr', val: 0.19, dir: 'pos' },
-      { name: 'speed_idx_dist_z', val: 0.15, dir: 'pos' },
-    ]
-  },
-  {
-    id: 'R02', name: '阪神10R 鳴尾記念', meta: '阪神 / 芝2000m / 良',
-    badge: 'jra', time: '15:05', field: 12,
-    horses: [
-      { num: 4, name: 'マテンロウレオ', score: 0.83, rankPct: 0.91, shap: 0.38 },
-      { num: 8, name: 'ヴェルトライゼンデ', score: 0.77, rankPct: 0.84, shap: 0.31 },
-      { num: 2, name: 'アラタ', score: 0.69, rankPct: 0.73, shap: 0.24 },
-      { num: 6, name: 'フォワードアゲン', score: 0.55, rankPct: 0.58, shap: 0.18 },
-    ],
-    tickets: [
-      { combo: '2-4-8', p: 0.072, ev: 0.163, kelly: '¥340', topEv: true },
-      { combo: '4-6-8', p: 0.059, ev: 0.108, kelly: '¥250' },
-      { combo: '2-4-6', p: 0.047, ev: 0.079, kelly: '¥190' },
-      { combo: '4-8-10',p: 0.039, ev: 0.052, kelly: '¥150' },
-      { combo: '2-6-8', p: 0.033, ev: 0.018, kelly: '¥60' },
-    ],
-    explanation: '軸はマテンロウレオ（4番）。阪神2000m右回り坂ありコースへの適性スコアが高く、直近5走の傾き（trend_slope）がプラス圏で上昇馬の判定。対抗ヴェルトライゼンデ（8番）は同距離帯でのスピード指数偏差値が歴代上位10%。3番手にアラタ（2番）、騎手×コース条件別top3率がベイズ収縮後で28.4%と高水準。',
-    shapFeats: [
-      { name: 'course_geom_score', val: 0.38, dir: 'pos' },
-      { name: 'trend_slope_5r', val: 0.31, dir: 'pos' },
-      { name: 'speed_idx_class_z', val: 0.24, dir: 'pos' },
-      { name: 'rest_rbf_14', val: 0.19, dir: 'pos' },
-      { name: 'horse_weight_diff', val: -0.12, dir: 'neg' },
-    ]
-  },
-  {
-    id: 'R03', name: '大井9R 東京ダービー', meta: '大井 / ダ2000m / 良',
-    badge: 'nar', time: '20:10', field: 14,
-    horses: [
-      { num: 1, name: 'フルデプスリーダー', score: 0.86, rankPct: 0.93, shap: 0.44 },
-      { num: 9, name: 'サントノーレ', score: 0.79, rankPct: 0.85, shap: 0.36 },
-      { num: 5, name: 'ミトノオー', score: 0.71, rankPct: 0.76, shap: 0.29 },
-      { num: 12, name: 'ゴライコウ', score: 0.58, rankPct: 0.62, shap: 0.20 },
-    ],
-    tickets: [
-      { combo: '1-5-9', p: 0.081, ev: 0.191, kelly: '¥380', topEv: true },
-      { combo: '1-9-12',p: 0.063, ev: 0.124, kelly: '¥280' },
-      { combo: '1-5-12',p: 0.052, ev: 0.087, kelly: '¥210' },
-      { combo: '5-9-12',p: 0.041, ev: 0.053, kelly: '¥150' },
-      { combo: '1-2-9', p: 0.035, ev: 0.029, kelly: '¥90' },
-    ],
-    explanation: '大井ダート2000mはNARモデル（南関東）で評価。フルデプスリーダー（1番）は同場同距離リピート成績が高く、地元騎手との組み合わせ成績もベイズ収縮後上位。直前オッズドリフト監視で締切30分前比-8.2倍の資金流入あり（期待値強化サイン）。対抗サントノーレ（9番）は控除率72.5%（大井TCK）を考慮したEV計算でも+0.191を維持。',
-    shapFeats: [
-      { name: 'same_course_dist_roi', val: 0.44, dir: 'pos' },
-      { name: 'odds_drift_30min', val: 0.36, dir: 'pos' },
-      { name: 'local_jockey_wr', val: 0.29, dir: 'pos' },
-      { name: 'style_score_wavg3', val: 0.21, dir: 'pos' },
-      { name: 'layoff_150plus', val: -0.08, dir: 'neg' },
-    ]
-  },
-  {
-    id: 'R04', name: '東京9R 八王子特別', meta: '東京 / 芝1800m / 稍重',
-    badge: 'jra', time: '14:15', field: 18,
-    horses: [
-      { num: 14, name: 'ビューティフルデイ', score: 0.79, rankPct: 0.88, shap: 0.37 },
-      { num: 6, name: 'クリノプレミアム', score: 0.72, rankPct: 0.80, shap: 0.30 },
-      { num: 3, name: 'トーセンバジル', score: 0.65, rankPct: 0.71, shap: 0.23 },
-      { num: 10, name: 'ネクストムーン', score: 0.54, rankPct: 0.60, shap: 0.16 },
-    ],
-    tickets: [
-      { combo: '6-14-3', p: 0.059, ev: 0.131, kelly: '¥290', topEv: true },
-      { combo: '3-6-14', p: 0.048, ev: 0.096, kelly: '¥220' },
-      { combo: '6-10-14',p: 0.041, ev: 0.068, kelly: '¥170' },
-      { combo: '3-10-14',p: 0.034, ev: 0.041, kelly: '¥120' },
-      { combo: '3-6-10', p: 0.028, ev: 0.012, kelly: '¥40' },
-    ],
-    explanation: '稍重馬場でビューティフルデイ（14番）の馬場適性スコアが良馬場比+12%上昇。going別スピード指数補正で稍重時のz-scoreが全出走馬中最高値。クリノプレミアム（6番）は枠順×距離バイアス（東京1800m外枠）の階層事前率が有利。',
-    shapFeats: [
-      { name: 'going_adapt_z', val: 0.37, dir: 'pos' },
-      { name: 'draw_bias_score', val: 0.30, dir: 'pos' },
-      { name: 'agari3f_rank_pct', val: 0.23, dir: 'pos' },
-      { name: 'rest_rbf_35', val: 0.19, dir: 'pos' },
-      { name: 'field_size_effect', val: -0.14, dir: 'neg' },
-    ]
-  },
-  {
-    id: 'R05', name: '川崎8R 川崎記念', meta: '川崎 / ダ2100m / 良',
-    badge: 'nar', time: '19:45', field: 10,
-    horses: [
-      { num: 3, name: 'カジノフォンテン', score: 0.91, rankPct: 0.96, shap: 0.48 },
-      { num: 7, name: 'チュウワウィザード', score: 0.82, rankPct: 0.88, shap: 0.39 },
-      { num: 5, name: 'ノンコノユメ', score: 0.68, rankPct: 0.73, shap: 0.27 },
-      { num: 1, name: 'マグニフィカ', score: 0.51, rankPct: 0.55, shap: 0.17 },
-    ],
-    tickets: [
-      { combo: '3-5-7', p: 0.094, ev: 0.217, kelly: '¥430', topEv: true },
-      { combo: '3-7-1', p: 0.071, ev: 0.153, kelly: '¥320' },
-      { combo: '3-5-1', p: 0.058, ev: 0.109, kelly: '¥250' },
-      { combo: '1-5-7', p: 0.044, ev: 0.063, kelly: '¥160' },
-      { combo: '5-7-2', p: 0.037, ev: 0.034, kelly: '¥100' },
-    ],
-    explanation: '川崎ダート2100mはNARモデル（南関東）。カジノフォンテン（3番）は小回りコーナリング指数が群を抜いており、4角通過位置の直近3走加重平均が0.21（逃げ〜先行）で川崎の先行有利バイアスと完全一致。EV +0.217はNARモデルの閾値0.05を大幅超過。',
-    shapFeats: [
-      { name: 'corner_geom_score', val: 0.48, dir: 'pos' },
-      { name: 'front_run_bias_nar', val: 0.39, dir: 'pos' },
-      { name: 'same_track_wr', val: 0.27, dir: 'pos' },
-      { name: 'odds_drift_10min', val: 0.18, dir: 'pos' },
-      { name: 'going_adapt_z', val: 0.14, dir: 'pos' },
-    ]
-  },
-  {
-    id: 'R06', name: '阪神9R 六甲特別', meta: '阪神 / 芝1400m / 良',
-    badge: 'jra', time: '14:45', field: 15,
-    horses: [
-      { num: 2, name: 'サトノレーヴ', score: 0.76, rankPct: 0.85, shap: 0.34 },
-      { num: 11, name: 'ダイシンバグ', score: 0.70, rankPct: 0.78, shap: 0.28 },
-      { num: 7, name: 'ボンドガール', score: 0.63, rankPct: 0.69, shap: 0.22 },
-      { num: 4, name: 'アヴェラーレ', score: 0.52, rankPct: 0.57, shap: 0.15 },
-    ],
-    tickets: [
-      { combo: '2-7-11', p: 0.061, ev: 0.118, kelly: '¥260', topEv: true },
-      { combo: '2-4-11', p: 0.049, ev: 0.083, kelly: '¥200' },
-      { combo: '4-7-11', p: 0.042, ev: 0.059, kelly: '¥160' },
-      { combo: '2-7-4', p: 0.035, ev: 0.034, kelly: '¥110' },
-      { combo: '7-11-14',p: 0.029, ev: 0.011, kelly: '¥35' },
-    ],
-    explanation: 'サトノレーヴ（2番）は阪神1400m短距離でテンの速さスコアが上位、走破タイムの絶対z-scoreと相対順位percentileが両方高い二本立ての評価で安定。ダイシンバグ（11番）は騎手×阪神×1400mの条件別成績がm-estimate収縮後25.3%で高水準。',
-    shapFeats: [
-      { name: 'early_speed_score', val: 0.34, dir: 'pos' },
-      { name: 'abs_3F_z', val: 0.28, dir: 'pos' },
-      { name: 'rank_3F_pct', val: 0.22, dir: 'pos' },
-      { name: 'jockey_cond_bayes', val: 0.15, dir: 'pos' },
-      { name: 'rest_rbf_14', val: -0.11, dir: 'neg' },
-    ]
-  },
+    "id": "NO_RACE",
+    "name": "本日は開催なし",
+    "meta": "—",
+    "badge": "jra",
+    "time": "—",
+    "field": 0,
+    "horses": [],
+    "tickets": [],
+    "explanation": "2026-06-05 は競馬の開催がありません。",
+    "shapFeats": []
+  }
 ];
 
 const SLICE_DATA = [
-  { surface:'芝', dist:'短距離', cnt:312, roi:97.2, hit:18.3, ev:0.091 },
-  { surface:'芝', dist:'マイル・中距離', cnt:487, roi:94.1, hit:16.8, ev:0.074 },
-  { surface:'芝', dist:'長距離', cnt:198, roi:88.4, hit:14.2, ev:0.051 },
-  { surface:'ダート', dist:'短距離', cnt:271, roi:91.7, hit:15.9, ev:0.068 },
-  { surface:'ダート', dist:'マイル・中距離', cnt:419, roi:96.3, hit:17.4, ev:0.083 },
-  { surface:'ダート(NAR)', dist:'南関東', cnt:183, roi:103.8, hit:19.1, ev:0.112 },
-  { surface:'ダート(NAR)', dist:'その他地方', cnt:144, roi:87.2, hit:13.8, ev:0.044 },
+  {
+    "surface": "芝",
+    "dist": "短距離",
+    "cnt": 0,
+    "roi": 0.0,
+    "hit": 0.0,
+    "ev": 0.0
+  },
+  {
+    "surface": "芝",
+    "dist": "マイル・中距離",
+    "cnt": 0,
+    "roi": 0.0,
+    "hit": 0.0,
+    "ev": 0.0
+  },
+  {
+    "surface": "ダート",
+    "dist": "短距離",
+    "cnt": 0,
+    "roi": 0.0,
+    "hit": 0.0,
+    "ev": 0.0
+  },
+  {
+    "surface": "ダート",
+    "dist": "マイル・中距離",
+    "cnt": 0,
+    "roi": 0.0,
+    "hit": 0.0,
+    "ev": 0.0
+  }
 ];
 
-const WEEKLY_ROI = [82.1, 91.4, 88.7, 95.2, 79.3, 101.4, 93.8, 93.4];
+const WEEKLY_ROI = [0.0];
 
 const GLOBAL_SHAP = [
   { name: 'agari3f_z', val: 0.31 },
