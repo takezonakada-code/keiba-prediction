@@ -219,21 +219,21 @@ def _predict_one_race(race: dict, date_str: str) -> Optional[dict]:
     horse_ids    = hdf["horse_id"].values
     draw_numbers = hdf["draw_number"].values
 
+    # システムA: PL確率上位5点（EVフィルタなし・市場オッズなしの場合も必ず出力）
     system_a = []
-    for combo_idx, p_hit in sorted(probs.items(), key=lambda x: x[1], reverse=True)[:20]:
+    for combo_idx, p_hit in sorted(probs.items(), key=lambda x: x[1], reverse=True)[:5]:
         theory_odds = payback / max(p_hit, 1e-8)
-        bet = score_bet(p_hit, theory_odds, bankroll=100_000)
-        if bet["ev"] > -0.20:
-            nums = sorted(int(draw_numbers[i]) for i in combo_idx)
-            system_a.append({
-                "combo":      "-".join(str(n) for n in nums),
-                "p_hit":      round(p_hit, 5),
-                "est_odds":   round(theory_odds, 1),
-                "ev":         round(bet["ev"], 4),
-                "kelly":      f"¥{int(bet['stake'])}",
-                "mode":       "A",
-            })
-    system_a = sorted(system_a, key=lambda x: x["ev"], reverse=True)[:5]
+        nums = sorted(int(draw_numbers[i]) for i in combo_idx)
+        system_a.append({
+            "combo":    "-".join(str(n) for n in nums),
+            "p_hit":    round(p_hit, 5),
+            "est_odds": round(theory_odds, 1),
+            "ev":       round(payback - 1.0, 4),  # 理論EV = payback - 1
+            "kelly":    f"¥{max(100, int(p_hit * 5000 / 100) * 100)}",
+            "mode":     "A",
+        })
+    if system_a:
+        system_a[0]["topEv"] = True
 
     # ── システムB: 高配当スコア順 上位3点 ───────
     system_b = []
