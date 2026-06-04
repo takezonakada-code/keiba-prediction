@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from db.database import get_conn, init_db
 from probability.plackett_luce import softmax_worth, all_trifecta_box_probs
 from probability.expected_value import score_bet
-from features.race_chaos import race_chaos_score, is_high_odds_target_race
+from features.race_chaos import compute_chaos_score, is_high_odds_target_race
 from features.odds_gap import (
     compute_odds_gap, find_high_odds_candidates, market_win_probs
 )
@@ -199,14 +199,22 @@ def _predict_one_race(race: dict, date_str: str) -> Optional[dict]:
     total_inv = (1.0 / win_odds_arr).sum()
     top3_share = top3_inv.sum() / total_inv if total_inv > 0 else 1.0
 
-    chaos = race_chaos_score(
-        race_id, date_str, race_class, track, n_horses, win_odds_arr
+    chaos = compute_chaos_score(
+        race_class=race_class,
+        track_condition=going,
+        field_size=n_horses,
+        win_odds=win_odds_arr,
+        race_no=race_no,
+        total_races=12,
+        distance=distance,
+        track=track,
     )
     is_hot, hot_reasons = is_high_odds_target_race(
         race_class, n_horses, fav_odds, top3_share, chaos["chaos_score"]
     )
 
     # ── システムA: EV順 上位5点 ─────────────────
+    from probability.high_odds_selector import select_high_odds_tickets
     probs = all_trifecta_box_probs(softmax_worth(model_scores))
     horse_ids    = hdf["horse_id"].values
     draw_numbers = hdf["draw_number"].values
@@ -215,7 +223,7 @@ def _predict_one_race(race: dict, date_str: str) -> Optional[dict]:
     for combo_idx, p_hit in sorted(probs.items(), key=lambda x: x[1], reverse=True)[:20]:
         theory_odds = payback / max(p_hit, 1e-8)
         bet = score_bet(p_hit, theory_odds, bankroll=100_000)
-        if bet["ev"] > -0.20:   # 大幅マイナスは除外
+        if bet["ev"] > -0.20:
             nums = sorted(int(draw_numbers[i]) for i in combo_idx)
             system_a.append({
                 "combo":      "-".join(str(n) for n in nums),
@@ -227,21 +235,24 @@ def _predict_one_race(race: dict, date_str: str) -> Optional[dict]:
             })
     system_a = sorted(system_a, key=lambda x: x["ev"], reverse=True)[:5]
 
-    # ── システムB: gap順 上位3点（50倍以上） ────
+    # ── システムB: 高配当スコア順 上位3点 ───────
     system_b = []
-    if chaos["chaos_score"] >= 0.40:   # 荒れやすいレースのみ
-        candidates = find_high_odds_candidates(
-            model_scores, win_odds_arr,
-            list(range(n_horses)),
-            payback_rate=payback,
-            min_gap=0.3,      # 荒れレース用に少し緩める
-            min_est_odds=30.0,
-            top_n=10,
+    if chaos["chaos_score"] >= 40:   # MID_CHAOS以上のレースのみ
+        b_candidates = select_high_odds_tickets(
+            race_id      = race_id,
+            scores       = model_scores,
+            win_odds     = win_odds_arr,
+            chaos_score  = chaos["chaos_score"],
+            feature_df   = hdf.reset_index(drop=True),
+            draw_numbers = draw_numbers,
+            payback_rate = payback,
+            max_tickets  = 6,
+            min_gap      = 0.3,
+            min_est_odds = 30.0,
         )
-        for c in candidates[:3]:
-            nums = sorted(int(draw_numbers[i]) for i in c["combo_idx"])
+        for c in b_candidates[:3]:
             system_b.append({
-                "combo":    "-".join(str(n) for n in nums),
+                "combo":    c["combo"],
                 "p_model":  round(c["p_model"], 5),
                 "est_odds": round(c["est_odds"], 1),
                 "gap":      round(c["gap"], 3),
@@ -342,8 +353,9 @@ def _to_html_format(race_data: list[dict], date_str: str) -> list[dict]:
             "time":         rd["post_time"],
             "field":        rd["field_size"],
             "raceClass":    rd["race_class"],
-            "chaosScore":   chaos["chaos_score"],
-            "isHighChaos":  chaos["is_high_chaos"],
+            "chaosScore":   int(chaos["chaos_score"]),   # 0-100点
+            "isHighChaos":  bool(chaos["is_high_chaos"]),
+            "chaosLevel":   chaos.get("level", "普通"),
             "isHighOddsTarget": rd["is_high_odds_target"],
             "hotReasons":   rd["hot_reasons"],
             "horses":       rd["horses"],
