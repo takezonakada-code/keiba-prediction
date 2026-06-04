@@ -218,32 +218,24 @@ def generate_html(
         html = _replace_js_const(html, "WEEKLY_ROI", weekly_js)
 
     # ── HIT_RECORDS (的中事例) ────────────────────
-    hit_records = roi_data.get("hit_records", []) if roi_data else []
-    # 名古屋12Rを初期事例として追加（まだDBにない場合）
-    seed_hit = {
-        "date": "2026-06-04",
-        "race": "名古屋12R 金シャチ最終戦(C)",
-        "result": "1-5-6",
-        "payout": 23360,
-        "chaosScore": 76,
-        "notes": "C級・稍重・12頭・最終R・名古屋。chaos76点で高配当チャンス選別済み。",
-        "detected": False,
-    }
-    hits_for_js = [seed_hit]
-    for h in hit_records:
-        hits_for_js.append({
-            "date":       h.get("race_date", ""),
-            "race":       f"{h.get('track','')}{h.get('race_no','')}R {h.get('race_name','')}",
-            "result":     h.get("result_combo", ""),
-            "payout":     h.get("payout", 0),
-            "chaosScore": h.get("chaos_score", 0),
-            "notes":      f"システム{h.get('system','?')}的中",
-            "detected":   True,
-        })
-    html = _replace_js_const(html, "HIT_RECORDS", json.dumps(hits_for_js, ensure_ascii=False))
+    # 問題4対応: 確認済みの事実のみ。推測データは含めない。
+    # 「的中した」事例は今後実際に的中した時だけ追加する。
+    # 名古屋12R は「高配当チャンス選別済み・ただし買い目に1-5-6なし」の参照事例として記録。
+    VERIFIED_FACTS = [
+        {
+            "date":       "2026-06-04",
+            "race":       "名古屋12R 金シャチ最終戦(C)",
+            "result":     "1-5-6",
+            "payout":     23360,
+            "chaosScore": 76,
+            "notes":      "chaos76点で高配当チャンス選別✅ / 買い目に1-5-6は未含❌ / 参照事例",
+            "detected":   False,
+        },
+    ]
+    html = _replace_js_const(html, "HIT_RECORDS", json.dumps(VERIFIED_FACTS, ensure_ascii=False))
 
     INDEX_HTML.write_text(html, encoding="utf-8")
-    print(f"[HTML] index.html を更新しました ({date_str}, レース{len(races_data)}件, 的中事例{len(hits_for_js)}件)")
+    print(f"[HTML] index.html を更新しました ({date_str}, レース{len(races_data)}件)")
 
 
 def _replace_js_const(html: str, const_name: str, new_value_js: str) -> str:

@@ -546,6 +546,7 @@ header {
     <button class="nav-tab" onclick="switchTab('roi')">ROIダッシュボード</button>
     <button class="nav-tab" onclick="switchTab('model')">モデル状態</button>
     <button class="nav-tab" onclick="switchTab('hits')">🏆 的中事例</button>
+    <button class="nav-tab" onclick="switchTab('tomorrow')">📅 明日の予測</button>
   </div>
 
   <!-- TAB: PREDICTIONS -->
@@ -687,9 +688,23 @@ header {
   <div id="tab-hits" class="tab-panel">
     <div class="section-title">🏆 的中事例</div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:16px;">
-      システムBが高配当チャンスと判定したレースの的中記録
+      払戻金額が確認できた事実のみ記録します
     </div>
     <div id="hits-list"></div>
+  </div>
+
+  <!-- TAB: 明日の予測 -->
+  <div id="tab-tomorrow" class="tab-panel">
+    <div class="section-title">📅 明日の予測（2026-06-05）</div>
+    <div id="tomorrow-content">
+      <div style="padding:20px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;">🏇 明日の開催情報</div>
+        <div id="tomorrow-schedule" style="font-size:13px;line-height:2;color:var(--text2);">
+          読み込み中...
+        </div>
+      </div>
+      <div id="tomorrow-races" class="race-grid"></div>
+    </div>
   </div>
 
 </div><!-- /container -->
@@ -765,38 +780,38 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "1-4-8",
-        "p": 0.00468,
-        "ev": -0.3,
+        "combo": "2-6-8",
+        "p": 0.00071,
+        "ev": 0.0556,
         "kelly": "¥100",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "4-8-12",
-        "p": 0.00468,
-        "ev": -0.3,
+        "combo": "2-4-6",
+        "p": 0.00058,
+        "ev": 0.0535,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "1-8-12",
-        "p": 0.00466,
-        "ev": -0.3,
+        "combo": "2-6-12",
+        "p": 0.00042,
+        "ev": 0.0508,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "1-4-12",
-        "p": 0.00465,
-        "ev": -0.3,
+        "combo": "2-6-9",
+        "p": 0.0002,
+        "ev": 0.0474,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "4-8-9",
-        "p": 0.00465,
-        "ev": -0.3,
+        "combo": "2-6-11",
+        "p": 8e-05,
+        "ev": 0.0457,
         "kelly": "¥100",
         "mode": "A"
       },
@@ -896,38 +911,38 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "4-7-10",
-        "p": 0.00475,
-        "ev": -0.3,
+        "combo": "6-7-10",
+        "p": 0.01298,
+        "ev": 0.0575,
         "kelly": "¥100",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "2-4-10",
-        "p": 0.00475,
-        "ev": -0.3,
+        "combo": "3-7-10",
+        "p": 0.00731,
+        "ev": 0.0543,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "4-6-10",
-        "p": 0.00473,
-        "ev": -0.3,
+        "combo": "7-10-11",
+        "p": 0.00416,
+        "ev": 0.0526,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "3-4-10",
-        "p": 0.00472,
-        "ev": -0.3,
+        "combo": "7-9-10",
+        "p": 0.00347,
+        "ev": 0.0522,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "4-10-12",
-        "p": 0.00472,
-        "ev": -0.3,
+        "combo": "1-7-10",
+        "p": 0.00104,
+        "ev": 0.051,
         "kelly": "¥100",
         "mode": "A"
       },
@@ -1027,38 +1042,38 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "3-6-9",
-        "p": 0.00475,
-        "ev": -0.3,
+        "combo": "3-6-12",
+        "p": 0.00941,
+        "ev": 0.1328,
         "kelly": "¥100",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "6-9-11",
-        "p": 0.00473,
-        "ev": -0.3,
+        "combo": "5-6-12",
+        "p": 0.00278,
+        "ev": 0.1248,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "3-9-11",
-        "p": 0.00472,
-        "ev": -0.3,
+        "combo": "4-6-12",
+        "p": 0.00142,
+        "ev": 0.1234,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "5-6-9",
-        "p": 0.0047,
-        "ev": -0.3,
+        "combo": "2-6-12",
+        "p": 0.00025,
+        "ev": 0.1222,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "1-6-9",
-        "p": 0.0047,
-        "ev": -0.3,
+        "combo": "6-10-12",
+        "p": 0.00015,
+        "ev": 0.1221,
         "kelly": "¥100",
         "mode": "A"
       },
@@ -1160,38 +1175,38 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "3-4-8",
-        "p": 0.00473,
-        "ev": -0.3,
+        "combo": "3-4-9",
+        "p": 0.01452,
+        "ev": 0.1168,
         "kelly": "¥100",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "4-7-8",
-        "p": 0.00473,
-        "ev": -0.3,
+        "combo": "3-9-12",
+        "p": 0.00163,
+        "ev": 0.0793,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "3-4-7",
-        "p": 0.0047,
-        "ev": -0.3,
+        "combo": "3-6-9",
+        "p": 0.00053,
+        "ev": 0.0768,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "4-8-12",
-        "p": 0.00469,
-        "ev": -0.3,
+        "combo": "3-9-10",
+        "p": 0.00051,
+        "ev": 0.0768,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "1-4-8",
-        "p": 0.00469,
-        "ev": -0.3,
+        "combo": "2-3-9",
+        "p": 0.00034,
+        "ev": 0.0764,
         "kelly": "¥100",
         "mode": "A"
       },
@@ -1291,38 +1306,38 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "6-7-8",
-        "p": 0.00898,
-        "ev": -0.3,
+        "combo": "3-6-7",
+        "p": 0.00152,
+        "ev": 0.1927,
         "kelly": "¥100",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "4-6-8",
-        "p": 0.00895,
-        "ev": -0.3,
+        "combo": "2-6-7",
+        "p": 0.00064,
+        "ev": 0.1899,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "5-6-8",
-        "p": 0.00894,
-        "ev": -0.3,
+        "combo": "6-7-9",
+        "p": 0.00028,
+        "ev": 0.1888,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "3-6-8",
-        "p": 0.00893,
-        "ev": -0.3,
+        "combo": "1-6-7",
+        "p": 0.00027,
+        "ev": 0.1887,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "6-8-10",
-        "p": 0.00893,
-        "ev": -0.3,
+        "combo": "2-3-6",
+        "p": 0.0002,
+        "ev": 0.1785,
         "kelly": "¥100",
         "mode": "A"
       },
@@ -1424,38 +1439,38 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "5-7-10",
-        "p": 0.00879,
-        "ev": -0.3,
+        "combo": "5-6-8",
+        "p": 0.00406,
+        "ev": 0.0238,
         "kelly": "¥100",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "5-6-10",
-        "p": 0.00875,
-        "ev": -0.3,
+        "combo": "4-5-8",
+        "p": 6e-05,
+        "ev": 0.0084,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "6-7-10",
-        "p": 0.00871,
-        "ev": -0.3,
+        "combo": "5-8-10",
+        "p": 0.0067,
+        "ev": -0.0671,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "5-6-7",
-        "p": 0.0087,
-        "ev": -0.3,
+        "combo": "4-6-8",
+        "p": 4e-05,
+        "ev": -0.0837,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "5-9-10",
-        "p": 0.00858,
-        "ev": -0.3,
+        "combo": "4-5-6",
+        "p": 0.00203,
+        "ev": -0.099,
         "kelly": "¥100",
         "mode": "A"
       },
@@ -1557,39 +1572,39 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "3-4-7",
-        "p": 0.00871,
-        "ev": -0.3,
+        "combo": "4-8-9",
+        "p": 0.00213,
+        "ev": -0.16,
         "kelly": "¥100",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "2-4-7",
-        "p": 0.00869,
-        "ev": -0.3,
+        "combo": "1-4-9",
+        "p": 0.00213,
+        "ev": -0.16,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "2-3-4",
-        "p": 0.00865,
-        "ev": -0.3,
+        "combo": "2-4-9",
+        "p": 0.03366,
+        "ev": -0.1636,
+        "kelly": "¥100",
+        "mode": "A"
+      },
+      {
+        "combo": "3-4-9",
+        "p": 0.03742,
+        "ev": -0.1639,
         "kelly": "¥100",
         "mode": "A"
       },
       {
         "combo": "4-7-9",
-        "p": 0.0086,
-        "ev": -0.3,
-        "kelly": "¥100",
-        "mode": "A"
-      },
-      {
-        "combo": "4-7-10",
-        "p": 0.0086,
-        "ev": -0.3,
-        "kelly": "¥100",
+        "p": 0.05007,
+        "ev": -0.1652,
+        "kelly": "¥200",
         "mode": "A"
       },
       {
@@ -1688,38 +1703,38 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "4-5-12",
-        "p": 0.00481,
-        "ev": -0.3,
+        "combo": "3-4-7",
+        "p": 0.00043,
+        "ev": 0.0899,
         "kelly": "¥100",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "4-5-11",
-        "p": 0.00478,
-        "ev": -0.3,
+        "combo": "3-7-10",
+        "p": 0.0,
+        "ev": -0.0566,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "4-5-8",
-        "p": 0.00476,
-        "ev": -0.3,
+        "combo": "1-3-7",
+        "p": 0.0,
+        "ev": -0.0568,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "2-4-5",
-        "p": 0.00476,
-        "ev": -0.3,
+        "combo": "3-6-7",
+        "p": 0.0,
+        "ev": -0.0568,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "4-5-7",
-        "p": 0.00475,
-        "ev": -0.3,
+        "combo": "3-7-8",
+        "p": 2e-05,
+        "ev": -0.0581,
         "kelly": "¥100",
         "mode": "A"
       },
@@ -1819,38 +1834,38 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "1-8-9",
-        "p": 0.00895,
-        "ev": -0.3,
+        "combo": "1-2-8",
+        "p": 0.00556,
+        "ev": 0.1119,
         "kelly": "¥100",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "4-8-9",
-        "p": 0.00893,
-        "ev": -0.3,
+        "combo": "2-5-8",
+        "p": 0.00011,
+        "ev": 0.1004,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "8-9-10",
-        "p": 0.00889,
-        "ev": -0.3,
+        "combo": "2-3-8",
+        "p": 0.00011,
+        "ev": 0.1004,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "2-8-9",
-        "p": 0.00889,
-        "ev": -0.3,
+        "combo": "1-2-5",
+        "p": 2e-05,
+        "ev": 0.0604,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "7-8-9",
-        "p": 0.00888,
-        "ev": -0.3,
+        "combo": "1-2-3",
+        "p": 2e-05,
+        "ev": 0.0604,
         "kelly": "¥100",
         "mode": "A"
       },
@@ -1951,38 +1966,38 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "4-6-8",
-        "p": 0.00892,
-        "ev": -0.3,
+        "combo": "4-6-10",
+        "p": 0.02234,
+        "ev": 0.003,
         "kelly": "¥100",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "4-8-10",
-        "p": 0.0089,
-        "ev": -0.3,
+        "combo": "2-4-6",
+        "p": 0.0104,
+        "ev": 0.0004,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "3-4-8",
-        "p": 0.00889,
-        "ev": -0.3,
+        "combo": "4-6-7",
+        "p": 0.0022,
+        "ev": -0.0011,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "2-4-8",
-        "p": 0.00888,
-        "ev": -0.3,
+        "combo": "1-4-6",
+        "p": 0.00125,
+        "ev": -0.0013,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "4-8-9",
-        "p": 0.00887,
-        "ev": -0.3,
+        "combo": "2-4-10",
+        "p": 0.00671,
+        "ev": -0.0028,
         "kelly": "¥100",
         "mode": "A"
       },
@@ -2082,38 +2097,38 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "2-5-10",
-        "p": 0.00904,
-        "ev": -0.3,
+        "combo": "2-6-9",
+        "p": 0.00656,
+        "ev": 0.066,
         "kelly": "¥100",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "1-2-10",
-        "p": 0.00899,
-        "ev": -0.3,
+        "combo": "2-5-6",
+        "p": 0.03008,
+        "ev": 0.0245,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "2-9-10",
-        "p": 0.00899,
-        "ev": -0.3,
+        "combo": "2-3-6",
+        "p": 0.00177,
+        "ev": 0.0126,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "2-6-10",
-        "p": 0.00899,
-        "ev": -0.3,
+        "combo": "5-6-9",
+        "p": 0.00017,
+        "ev": -0.0323,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "2-7-10",
-        "p": 0.00899,
-        "ev": -0.3,
+        "combo": "3-6-9",
+        "p": 1e-05,
+        "ev": -0.0345,
         "kelly": "¥100",
         "mode": "A"
       },
@@ -2213,38 +2228,38 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "1-8-10",
-        "p": 0.0048,
-        "ev": -0.3,
+        "combo": "1-5-12",
+        "p": 0.00119,
+        "ev": 0.0724,
         "kelly": "¥100",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "1-4-10",
-        "p": 0.0048,
-        "ev": -0.3,
+        "combo": "5-8-12",
+        "p": 8e-05,
+        "ev": 0.0059,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "1-10-12",
-        "p": 0.00479,
-        "ev": -0.3,
+        "combo": "5-7-12",
+        "p": 1e-05,
+        "ev": 0.0027,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "1-9-10",
-        "p": 0.00478,
-        "ev": -0.3,
+        "combo": "2-5-12",
+        "p": 1e-05,
+        "ev": 0.0027,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "1-4-8",
-        "p": 0.00478,
-        "ev": -0.3,
+        "combo": "1-8-12",
+        "p": 0.03986,
+        "ev": -0.0423,
         "kelly": "¥100",
         "mode": "A"
       },
@@ -2344,43 +2359,71 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "1-6-8",
-        "p": 0.00648,
-        "ev": -0.3,
-        "kelly": "¥100",
+        "combo": "1-4-8",
+        "p": 0.04622,
+        "ev": -0.071,
+        "kelly": "¥200",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "1-8-9",
-        "p": 0.00647,
-        "ev": -0.3,
+        "combo": "4-8-9",
+        "p": 0.02917,
+        "ev": -0.0724,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "1-3-8",
-        "p": 0.00646,
-        "ev": -0.3,
+        "combo": "3-4-8",
+        "p": 0.02425,
+        "ev": -0.0728,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "6-8-9",
-        "p": 0.00646,
-        "ev": -0.3,
+        "combo": "4-8-11",
+        "p": 0.01563,
+        "ev": -0.0734,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "1-5-8",
-        "p": 0.00646,
-        "ev": -0.3,
+        "combo": "4-8-10",
+        "p": 0.00656,
+        "ev": -0.0739,
         "kelly": "¥100",
         "mode": "A"
+      },
+      {
+        "combo": "2-7-10",
+        "p": 0.00429,
+        "estOdds": 163.3,
+        "gap": 8.282,
+        "kelly": "—",
+        "mode": "B",
+        "highOdds": true,
+        "topGap": true
+      },
+      {
+        "combo": "2-4-7",
+        "p": 0.00438,
+        "estOdds": 159.9,
+        "gap": 7.478,
+        "kelly": "—",
+        "mode": "B",
+        "highOdds": true
+      },
+      {
+        "combo": "2-7-11",
+        "p": 0.00436,
+        "estOdds": 160.7,
+        "gap": 7.441,
+        "kelly": "—",
+        "mode": "B",
+        "highOdds": true
       }
     ],
-    "explanation": "軸候補: セヴェンヌ（8番） スコア0.670園田 ダート1400m 稍。払戻率70.0%。",
+    "explanation": "軸候補: セヴェンヌ（8番） スコア0.670高配当狙い: 2-7-10 推定163倍園田 ダート1400m 稍。払戻率70.0%。",
     "shapFeats": []
   },
   {
@@ -2446,43 +2489,71 @@ const RACES = [
     ],
     "tickets": [
       {
-        "combo": "2-6-7",
-        "p": 0.00892,
+        "combo": "3-4-7",
+        "p": 0.00064,
         "ev": -0.3,
         "kelly": "¥100",
         "mode": "A",
         "topEv": true
       },
       {
-        "combo": "2-4-7",
-        "p": 0.00887,
+        "combo": "7-8-9",
+        "p": 3e-05,
         "ev": -0.3,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "2-7-10",
-        "p": 0.00883,
+        "combo": "1-3-4",
+        "p": 1e-05,
         "ev": -0.3,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "2-4-6",
-        "p": 0.0088,
+        "combo": "1-3-5",
+        "p": 0.0,
         "ev": -0.3,
         "kelly": "¥100",
         "mode": "A"
       },
       {
-        "combo": "2-7-8",
-        "p": 0.0088,
+        "combo": "1-4-6",
+        "p": 0.00049,
         "ev": -0.3,
         "kelly": "¥100",
         "mode": "A"
+      },
+      {
+        "combo": "3-5-9",
+        "p": 0.00579,
+        "estOdds": 120.9,
+        "gap": 9.889,
+        "kelly": "—",
+        "mode": "B",
+        "highOdds": true,
+        "topGap": true
+      },
+      {
+        "combo": "1-5-9",
+        "p": 0.0058,
+        "estOdds": 120.7,
+        "gap": 9.681,
+        "kelly": "—",
+        "mode": "B",
+        "highOdds": true
+      },
+      {
+        "combo": "1-3-9",
+        "p": 0.0058,
+        "estOdds": 120.7,
+        "gap": 9.627,
+        "kelly": "—",
+        "mode": "B",
+        "highOdds": true
       }
     ],
-    "explanation": "軸候補: シンメデージー（2番） スコア0.516園田 ダート1870m 稍。払戻率70.0%。",
+    "explanation": "軸候補: シンメデージー（2番） スコア0.516高配当狙い: 3-5-9 推定121倍園田 ダート1870m 稍。払戻率70.0%。",
     "shapFeats": []
   },
   {
@@ -2602,8 +2673,9 @@ const NUM_COLORS = [
   '#b0b0b0','#e05252','#5b8dee'
 ];
 
-// ===== 的中事例データ =====
-const HIT_RECORDS = [{"date": "2026-06-04", "race": "名古屋12R 金シャチ最終戦(C)", "result": "1-5-6", "payout": 23360, "chaosScore": 76, "notes": "C級・稍重・12頭・最終R・名古屋。chaos76点で高配当チャンス選別済み。", "detected": false}, {"date": "2026-06-04", "race": "園田1R C3三", "result": "4-6-8", "payout": 0, "chaosScore": 54, "notes": "システムA的中", "detected": true}, {"date": "2026-06-04", "race": "園田2R C3二", "result": "5-7-10", "payout": 0, "chaosScore": 69, "notes": "システムA的中", "detected": true}, {"date": "2026-06-04", "race": "園田4R 奥海ダッシュ3歳C2", "result": "4-5-11", "payout": 0, "chaosScore": 57, "notes": "システムA的中", "detected": true}, {"date": "2026-06-04", "race": "園田6R C2二", "result": "1-8-9", "payout": 0, "chaosScore": 54, "notes": "システムA的中", "detected": true}, {"date": "2026-06-04", "race": "園田8R C2", "result": "2-5-10", "payout": 0, "chaosScore": 49, "notes": "システムA的中", "detected": true}, {"date": "2026-06-04", "race": "園田12R 青馬ひすみ☆配信記念4thB1", "result": "2-8-11", "payout": 0, "chaosScore": 62, "notes": "システムA的中", "detected": true}];
+// ===== 的中事例データ（払戻金額が確認できた事実のみ）=====
+// 払戻不明の推定的中は含めない。実際に的中確認できた場合のみ追加。
+const HIT_RECORDS = [{"date": "2026-06-04", "race": "名古屋12R 金シャチ最終戦(C)", "result": "1-5-6", "payout": 23360, "chaosScore": 76, "notes": "chaos76点で高配当チャンス選別✅ / 買い目に1-5-6は未含❌ / 参照事例", "detected": false}];
 
 // ===== 現在のモード =====
 let currentMode = 'A';   // 'A' = 本命, 'B' = 高配当
@@ -2927,9 +2999,30 @@ function updateClock() {
 function renderHits() {
   const list = document.getElementById('hits-list');
   if (!list) return;
-  list.innerHTML = HIT_RECORDS.length === 0
-    ? '<div style="color:var(--text3);padding:20px;">的中事例はまだありません</div>'
-    : HIT_RECORDS.map(h => `
+
+  // 確認済み的中（detected=true）とゼロ
+  const confirmedHits = HIT_RECORDS.filter(h => h.detected);
+  const refs          = HIT_RECORDS.filter(h => !h.detected);
+
+  let html = '';
+
+  // まだ的中なし表示
+  if (confirmedHits.length === 0) {
+    html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center;margin-bottom:16px;">
+      <div style="font-size:16px;margin-bottom:8px;">🎯 まだ的中事例なし</div>
+      <div style="font-size:12px;color:var(--text3);">本日 2026-06-04 より計測開始。<br>実際に払戻が確認できた場合のみここに追加されます。</div>
+    </div>`;
+  }
+
+  // 参照事例（detected=false）
+  if (refs.length > 0) {
+    html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;padding:0 4px;">
+      📋 参照事例（高配当チャンス選別済みだが買い目には未含）
+    </div>`;
+  }
+
+  const allRecords = [...confirmedHits, ...refs];
+  html += allRecords.map(h => `
       <div style="background:var(--bg2);border:1px solid ${h.detected?'var(--gold)':'var(--border)'};
            border-radius:12px;padding:16px;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
@@ -2958,6 +3051,62 @@ function renderHits() {
         </div>
       </div>
     `).join('');
+  list.innerHTML = html;
+}
+
+// ===== 明日の予測 =====
+if (typeof TOMORROW_RACES === 'undefined') { var TOMORROW_RACES = []; }
+
+function renderTomorrow() {
+  const schedEl = document.getElementById('tomorrow-schedule');
+  const racesEl = document.getElementById('tomorrow-races');
+  if (!schedEl || !racesEl) return;
+
+  const schedInfo = [
+    { org:'JRA', tracks:['東京','阪神'], note:'土曜開催' },
+    { org:'NAR', tracks:['大井','盛岡','笠松','佐賀'], note:'夜間開催含む' },
+  ];
+  schedEl.innerHTML = schedInfo.map(s => {
+    const badge = s.org === 'JRA'
+      ? '<span style="background:#2a4a8a;color:#fff;padding:1px 7px;border-radius:8px;font-size:10px;margin-right:6px;">JRA</span>'
+      : '<span style="background:#8a2a2a;color:#fff;padding:1px 7px;border-radius:8px;font-size:10px;margin-right:6px;">NAR</span>';
+    return `<div>${badge} ${s.tracks.join('・')} <span style="color:var(--text3);font-size:11px;">${s.note}</span></div>`;
+  }).join('');
+
+  if (!TOMORROW_RACES || TOMORROW_RACES.length === 0) {
+    racesEl.innerHTML = `
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:32px;text-align:center;">
+        <div style="font-size:22px;margin-bottom:12px;">⏳</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px;">出走表取得中</div>
+        <div style="font-size:12px;color:var(--text3);line-height:1.8;">
+          明日 2026-06-05 の出走表は<br>
+          毎朝 5:30 の自動更新で取得・予測生成されます。
+        </div>
+        <div style="margin-top:16px;padding:12px;background:var(--bg1);border-radius:8px;font-size:11px;color:var(--text3);">
+          予定開催: 東京・阪神（JRA）/ 大井・盛岡・笠松・佐賀（NAR）
+        </div>
+      </div>`;
+  } else {
+    TOMORROW_RACES.forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'race-card';
+      card.onclick = () => selectRace(r);
+      const cs = r.chaosScore || 0;
+      const cc = cs>=60?'var(--gold)':cs>=40?'#aaa':'var(--text3)';
+      card.innerHTML = `
+        <div class="race-card-head">
+          <div><div class="race-name">${r.name}</div><div class="race-meta">${r.meta} / ${r.time}</div></div>
+          <span class="race-badge badge-${r.badge||'nar'}">${(r.badge||'').toUpperCase()}</span>
+        </div>
+        <div style="margin:4px 0;display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;height:4px;background:var(--border);border-radius:2px;">
+            <div style="height:100%;width:${Math.min(cs,100)}%;background:${cc};border-radius:2px;"></div>
+          </div>
+          <div style="font-size:10px;color:${cc}">${cs}点</div>
+        </div>`;
+      racesEl.appendChild(card);
+    });
+  }
 }
 
 // INIT
@@ -2967,6 +3116,7 @@ renderSlice();
 renderGlobalShap();
 renderDrift();
 renderHits();
+renderTomorrow();
 updateClock();
 setInterval(updateClock, 1000);
 

@@ -242,46 +242,66 @@ def _predict_one_race(race: dict, date_str: str) -> Optional[dict]:
     horse_ids    = hdf["horse_id"].values
     draw_numbers = hdf["draw_number"].values
 
-    # システムA: PL確率上位5点（EVフィルタなし・市場オッズなしの場合も必ず出力）
-    system_a = []
-    for combo_idx, p_hit in sorted(probs.items(), key=lambda x: x[1], reverse=True)[:5]:
-        theory_odds = payback / max(p_hit, 1e-8)
+    # ── Harville市場確率（EV計算の基準）────────────
+    from probability.harville import harville_trio_prob, market_win_probs as mwp
+    p_market_norm = mwp(win_odds_arr)   # 市場暗黙勝率
+
+    def harville_ev(combo_idx: tuple) -> tuple[float, float, float]:
+        """Harville式でEVを計算して (ev, p_model, est_odds) を返す。"""
+        p_mod = harville_trio_prob(model_scores / model_scores.sum(), combo_idx)
+        p_mkt = harville_trio_prob(p_market_norm, combo_idx)
+        est   = payback / max(p_mkt, 1e-9)   # 市場確率ベースの推定オッズ
+        ev    = p_mod * est - 1.0
+        return ev, p_mod, est
+
+    # ── システムA: Harville EV降順 上位5点 ──────────
+    # 全C(n,3)をEV計算してEV > -0.10 のもので上位5点
+    from itertools import combinations as iter_combos
+    a_candidates = []
+    for combo_idx in iter_combos(range(n_horses), 3):
+        ev, p_mod, est = harville_ev(combo_idx)
         nums = sorted(int(draw_numbers[i]) for i in combo_idx)
+        a_candidates.append((ev, p_mod, est, combo_idx, nums))
+
+    # EVが高い順にソート、上位5点を選択（EVが全部低くても上位5点は必ず出す）
+    a_candidates.sort(key=lambda x: x[0], reverse=True)
+    system_a = []
+    for ev, p_mod, est, combo_idx, nums in a_candidates[:5]:
         system_a.append({
             "combo":    "-".join(str(n) for n in nums),
-            "p_hit":    round(p_hit, 5),
-            "est_odds": round(theory_odds, 1),
-            "ev":       round(payback - 1.0, 4),  # 理論EV = payback - 1
-            "kelly":    f"¥{max(100, int(p_hit * 5000 / 100) * 100)}",
+            "p_hit":    round(p_mod, 5),
+            "est_odds": round(est, 1),
+            "ev":       round(ev, 4),
+            "kelly":    f"¥{max(100, int(p_mod * 5000 / 100) * 100)}",
             "mode":     "A",
         })
     if system_a:
         system_a[0]["topEv"] = True
 
-    # ── システムB: 高配当スコア順 上位3点 ───────
+    # ── システムB: gap上位3点（全レース必ず出力）──────
+    # chaos条件なし・全レース対象
     system_b = []
-    if chaos["chaos_score"] >= 40:   # MID_CHAOS以上のレースのみ
-        b_candidates = select_high_odds_tickets(
-            race_id      = race_id,
-            scores       = model_scores,
-            win_odds     = win_odds_arr,
-            chaos_score  = chaos["chaos_score"],
-            feature_df   = hdf.reset_index(drop=True),
-            draw_numbers = draw_numbers,
-            payback_rate = payback,
-            max_tickets  = 6,
-            min_gap      = 0.3,
-            min_est_odds = 30.0,
-        )
-        for c in b_candidates[:3]:
-            system_b.append({
-                "combo":    c["combo"],
-                "p_model":  round(c["p_model"], 5),
-                "est_odds": round(c["est_odds"], 1),
-                "gap":      round(c["gap"], 3),
-                "mode":     "B",
-                "topGap":   len(system_b) == 0,
-            })
+    b_candidates = select_high_odds_tickets(
+        race_id      = race_id,
+        scores       = model_scores,
+        win_odds     = win_odds_arr,
+        chaos_score  = chaos["chaos_score"],
+        feature_df   = hdf.reset_index(drop=True),
+        draw_numbers = draw_numbers,
+        payback_rate = payback,
+        max_tickets  = 10,
+        min_gap      = 0.0,    # 全組み合わせを対象
+        min_est_odds = 10.0,   # 10倍以上
+    )
+    for c in b_candidates[:3]:
+        system_b.append({
+            "combo":    c["combo"],
+            "p_model":  round(c["p_model"], 5),
+            "est_odds": round(c["est_odds"], 1),
+            "gap":      round(c["gap"], 3),
+            "mode":     "B",
+            "topGap":   len(system_b) == 0,
+        })
 
     # ── 馬リスト（model_scores降順） ─────────────
     hdf_sorted = hdf.copy()
