@@ -161,9 +161,21 @@ class NARScraper:
         soup = BeautifulSoup(html, "html.parser")
 
         try:
-            race_info = self._parse_race_info(soup, race_id)
-            horses    = self._parse_horses(soup, race_id, scrape_result)
-            payouts   = self._parse_payouts(soup, race_id) if scrape_result else []
+            race_info    = self._parse_race_info(soup, race_id)
+            horses       = self._parse_horses(soup, race_id, scrape_result)
+            payouts      = self._parse_payouts(soup, race_id) if scrape_result else []
+            corner_map   = self._parse_corner_passing(soup) if scrape_result else {}
+
+            # コーナー通過順を horses に注入（馬番でマッチ）
+            if corner_map:
+                for h in horses:
+                    dn = h.get("draw_number")
+                    if dn and dn in corner_map:
+                        c = corner_map[dn]
+                        h["corner1_pos"] = c[0] if c[0] else None
+                        h["corner2_pos"] = c[1] if c[1] else None
+                        h["corner3_pos"] = c[2] if c[2] else None
+                        h["corner4_pos"] = c[3] if c[3] else None
 
             self._save_race(race_info)
             self._save_horses(horses)
@@ -345,10 +357,15 @@ class NARScraper:
                     horse_id = m.group(1)
 
             # 騎手ID
+            # NAR URL例: ../jockey/result/recent/01083/ → ID=01083
+            #            ../jockey/?jockey_id=01083      → ID=01083
             jl = row.select_one("td a[href*='jockey']")
             jockey_id = ""
             if jl:
-                m = re.search(r"jockey/result/(\w+)", jl.get("href", ""))
+                href = jl.get("href", "")
+                m = re.search(r"jockey/(?:result/\w+/|result/)(\d+)", href) \
+                    or re.search(r"jockey_id=(\d+)", href) \
+                    or re.search(r"/jockey/(\d{5,})", href)
                 if m:
                     jockey_id = m.group(1)
 
@@ -356,7 +373,10 @@ class NARScraper:
             trl = row.select_one("td a[href*='trainer']")
             trainer_id = ""
             if trl:
-                m = re.search(r"trainer/result/(\w+)", trl.get("href", ""))
+                href = trl.get("href", "")
+                m = re.search(r"trainer/(?:result/\w+/|result/)(\d+)", href) \
+                    or re.search(r"trainer_id=(\d+)", href) \
+                    or re.search(r"/trainer/(\d{5,})", href)
                 if m:
                     trainer_id = m.group(1)
 
@@ -554,8 +574,9 @@ class NARScraper:
                            jockey_id, jockey_name, trainer_id, trainer_name,
                            sex, age, weight_carried, horse_weight, horse_weight_diff,
                            finish_position, race_time_seconds, agari3f_seconds,
+                           corner1_pos, corner2_pos, corner3_pos, corner4_pos,
                            win_odds, popular_rank, race_type)
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """, (
                         h["race_id"], h["race_date"], h["horse_id"], h["horse_name"],
                         h["draw_number"], h["frame_number"],
@@ -563,6 +584,8 @@ class NARScraper:
                         h["sex"], h["age"], h["weight_carried"],
                         h["horse_weight"], h["horse_weight_diff"],
                         h["finish_position"], h["race_time_seconds"], h["agari3f_seconds"],
+                        h.get("corner1_pos"), h.get("corner2_pos"),
+                        h.get("corner3_pos"), h.get("corner4_pos"),
                         h["win_odds"], h["popular_rank"], h["race_type"],
                     ))
                     # past_results にも反映（特徴量計算用）

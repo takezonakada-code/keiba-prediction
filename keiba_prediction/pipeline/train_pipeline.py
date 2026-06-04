@@ -72,6 +72,16 @@ def step2_build_features() -> int:
                 -- 騎手・コース
                 jockey_course_winrate REAL,
                 jockey_win_rate_3m    REAL,
+                jockey_track_winrate  REAL,   -- [NEW] 騎手×競馬場勝率（地元ボーナス）
+                -- 斤量
+                weight_z              REAL,   -- [NEW] 相対軽さスコア（z-score）
+                weight_rank_pct       REAL,   -- [NEW] 斤量軽さ順位%
+                -- 先行力
+                style_score_c4        REAL,   -- [NEW] 先行力スコア（4角加重平均）
+                style_vol_c4          REAL,   -- [NEW] 先行スタイル安定度
+                front_pct             REAL,   -- [NEW] 先行率（3番手以内%）
+                -- クラス別荒れ率
+                class_upset_rate      REAL,   -- [NEW] 条件クラス別荒れ率
                 -- 馬場・コース
                 surface_enc     INTEGER,    -- 0=ダート,1=芝,2=ばんえい
                 distance        INTEGER,
@@ -128,7 +138,7 @@ def step2_build_features() -> int:
             for row in rows:
                 conn.execute("""
                     INSERT OR REPLACE INTO training_features
-                    VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, (
                     row["race_id"], row["race_date"], row["horse_id"],
                     row["draw_number"], row["finish_position"], row["relevance"],
@@ -138,6 +148,10 @@ def step2_build_features() -> int:
                     row["rest_rbf_35"], row["rest_rbf_56"], row["rest_rbf_84"],
                     row["rest_rbf_140"], row["rest_rbf_210"], row["layoff_150plus"],
                     row["jockey_course_winrate"], row["jockey_win_rate_3m"],
+                    row.get("jockey_track_winrate"),
+                    row.get("weight_z"), row.get("weight_rank_pct"),
+                    row.get("style_score_c4"), row.get("style_vol_c4"), row.get("front_pct"),
+                    row.get("class_upset_rate"),
                     row["surface_enc"], row["distance"],
                     row["distance_band_enc"], row["straight_m"],
                     row["horse_weight"], row["horse_weight_diff"],
@@ -153,7 +167,14 @@ def step2_build_features() -> int:
 def _compute_race_features(race_id: str, race_date: str, race_info: dict) -> list[dict]:
     """1レース分の特徴量を計算して返す。過去走のみ使用。"""
     from db.database import get_conn
-    from features.rest_interval import compute_rest_features, REST_RBF_CENTERS
+    from features.rest_interval import compute_rest_features
+    from features.nar_features import (
+        jockey_track_winrate,
+        batch_relative_weight,
+        frontrun_score,
+        class_upset_rates,
+        get_class_upset_rate,
+    )
 
     with get_conn() as conn:
         # このレースの出走馬
@@ -241,8 +262,16 @@ def _compute_race_features(race_id: str, race_date: str, race_info: dict) -> lis
 
         # ── 騎手×コース勝率 ──────────────────────────
         jockey_id = entry.get("jockey_id")
-        jk_course_wr = _jockey_course_winrate(jockey_id, race_info.get("track"), race_date)
-        jk_3m_wr     = _jockey_recent_winrate(jockey_id, race_date, months=3)
+        jk_course_wr   = _jockey_course_winrate(jockey_id, race_info.get("track"), race_date)
+        jk_3m_wr       = _jockey_recent_winrate(jockey_id, race_date, months=3)
+
+        # ── [NEW 1] 騎手×競馬場勝率（地元ボーナス）────
+        jk_track_wr = jockey_track_winrate(
+            jockey_id or "", race_info.get("track", ""), race_date
+        )
+
+        # ── [NEW 3] 先行力スコア ─────────────────────
+        front_feats = frontrun_score(horse_id, race_date)
 
         rows.append({
             "race_id":        race_id,
@@ -267,6 +296,16 @@ def _compute_race_features(race_id: str, race_date: str, race_info: dict) -> lis
             "layoff_150plus": rbf_feats.get("layoff_150plus", 0),
             "jockey_course_winrate": jk_course_wr,
             "jockey_win_rate_3m":    jk_3m_wr,
+            "jockey_track_winrate":  jk_track_wr,       # [NEW 1]
+            # [NEW 2] 相対斤量 → レース単位で後から追加（後処理）
+            "weight_z":        None,
+            "weight_rank_pct": None,
+            # [NEW 3] 先行力
+            "style_score_c4":  front_feats.get("style_score_c4"),
+            "style_vol_c4":    front_feats.get("style_vol_c4"),
+            "front_pct":       front_feats.get("front_pct"),
+            # [NEW 4] クラス別荒れ率 → レース単位で後から追加
+            "class_upset_rate": None,
             "surface_enc":    surface_enc,
             "distance":       dist,
             "distance_band_enc": dist_band,
@@ -280,6 +319,26 @@ def _compute_race_features(race_id: str, race_date: str, race_info: dict) -> lis
             "race_type":      race_info.get("race_type", "flat"),
             "as_of_date":     race_date,
         })
+
+    # ── [NEW 2] 相対斤量スコアをレース単位で計算 ────
+    weight_df = batch_relative_weight([race_id])
+    if not weight_df.empty:
+        wmap = {
+            int(r["draw_number"]): (r["weight_z"], r["weight_rank_pct"])
+            for _, r in weight_df.iterrows()
+        }
+        for row in rows:
+            dn = row.get("draw_number")
+            if dn and dn in wmap:
+                row["weight_z"]        = wmap[dn][0]
+                row["weight_rank_pct"] = wmap[dn][1]
+
+    # ── [NEW 4] クラス別荒れ率を全行に設定 ──────────
+    race_class = race_info.get("race_class", "")
+    upset_rates = class_upset_rates(race_date)
+    class_upset = get_class_upset_rate(race_class, upset_rates)
+    for row in rows:
+        row["class_upset_rate"] = class_upset
 
     return rows
 
@@ -332,12 +391,28 @@ def _jockey_recent_winrate(jockey_id, as_of_date, months=3, m=30.0):
 # Step 3: LGBMRanker 学習
 # ──────────────────────────────────────────────────
 FEATURE_COLS = [
-    "agari3f_z", "agari3f_rank_pct", "speed_index_mean", "speed_index_trend",
-    "sf_ewma", "rest_rbf_7", "rest_rbf_14", "rest_rbf_21", "rest_rbf_35",
+    # 能力系
+    "agari3f_z", "agari3f_rank_pct",
+    "speed_index_mean", "speed_index_trend", "sf_ewma",
+    # 状態系
+    "rest_rbf_7", "rest_rbf_14", "rest_rbf_21", "rest_rbf_35",
     "rest_rbf_56", "rest_rbf_84", "rest_rbf_140", "rest_rbf_210",
-    "layoff_150plus", "jockey_course_winrate", "jockey_win_rate_3m",
+    "layoff_150plus",
+    # 騎手
+    "jockey_course_winrate", "jockey_win_rate_3m",
+    "jockey_track_winrate",    # [NEW 1] 騎手×競馬場勝率（地元ボーナス）
+    # 斤量
+    "weight_z", "weight_rank_pct",  # [NEW 2] 相対軽さスコア
+    # 先行力
+    "style_score_c4", "style_vol_c4", "front_pct",  # [NEW 3] 先行力スコア
+    # クラス
+    "class_upset_rate",        # [NEW 4] 条件クラス別荒れ率
+    # コース・馬場
     "surface_enc", "distance", "distance_band_enc", "straight_m",
-    "horse_weight", "horse_weight_diff", "win_odds", "popular_rank", "field_size",
+    # 馬体
+    "horse_weight", "horse_weight_diff",
+    # オッズ・人気
+    "win_odds", "popular_rank", "field_size",
 ]
 
 MODEL_DIR = Path(__file__).parent.parent / "models" / "trained"
