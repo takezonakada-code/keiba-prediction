@@ -1,0 +1,13 @@
+lightgbm>=4.3.0
+xgboost>=2.0.0
+catboost>=1.2.0
+scikit-learn>=1.4.0
+shap>=0.45.0
+pandas>=2.2.0
+numpy>=1.26.0
+requests>=2.31.0
+urllib3>=2.0.0
+beautifulsoup4>=4.12.0
+playwright>=1.42.0
+streamlit>=1.32.0
+pytest>=8.0.0
