@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SANRENPUKU AI — 競馬3連複予測</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0c;
+  --bg2: #111116;
+  --bg3: #18181f;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --gold: #c9a84c;
+  --gold2: #e8c96a;
+  --red: #e05252;
+  --green: #4caf7d;
+  --blue: #5b8dee;
+  --text: #e8e6e0;
+  --text2: #9a9890;
+  --text3: #5a5856;
+  --accent: #c9a84c;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 300;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* grain overlay */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:0;
+  opacity:.4;
+}
+
+/* HEADER */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10,10,12,0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: .12em;
+  color: var(--gold);
+}
+.logo span { color: var(--text3); font-size: 12px; font-family: 'DM Mono', monospace; letter-spacing:.05em; margin-left:10px; vertical-align:middle; }
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text3);
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s ease-in-out infinite;
+  display: inline-block;
+  margin-right: 5px;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* MAIN LAYOUT */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 32px;
+  position: relative;
+  z-index: 1;
+}
+
+/* STAT STRIP */
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 32px;
+  animation: fadeUp .5s ease both;
+}
+.stat-cell {
+  background: var(--bg2);
+  padding: 18px 20px;
+  text-align: center;
+}
+.stat-cell .label {
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  font-family: 'DM Mono', monospace;
+}
+.stat-cell .val {
+  font-family: 'DM Mono', monospace;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+}
+.stat-cell .val.up { color: var(--green); }
+.stat-cell .val.gold { color: var(--gold); }
+.stat-cell .sub {
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 3px;
+  font-family: 'DM Mono', monospace;
+}
+
+/* SECTION TITLE */
+.section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: .1em;
+  color: var(--gold);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* RACE GRID */
+.race-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.race-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color .2s, transform .2s;
+  cursor: pointer;
+  animation: fadeUp .6s ease both;
+}
+.race-card:hover {
+  border-color: rgba(201,168,76,0.35);
+  transform: translateY(-2px);
+}
+.race-card.selected {
+  border-color: var(--gold);
+}
+
+.race-card-head {
+  padding: 14px 18px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.race-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.race-meta {
+  font-size: 11px;
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+}
+.race-badge {
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+}
+.badge-jra { background: rgba(91,141,238,0.15); color: var(--blue); border: 1px solid rgba(91,141,238,0.3); }
+.badge-nar { background: rgba(201,168,76,0.12); color: var(--gold); border: 1px solid rgba(201,168,76,0.25); }
+.badge-ev { background: rgba(76,175,125,0.12); color: var(--green); border: 1px solid rgba(76,175,125,0.3); }
+
+.race-card-body { padding: 16px 18px; }
+
+/* HORSE TABLE inside card */
+.horse-rows { margin-bottom: 14px; }
+.horse-row {
+  display: grid;
+  grid-template-columns: 24px 1fr 52px 52px 60px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.horse-row:last-child { border-bottom: none; }
+.horse-num {
+  width: 22px; height: 22px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace;
+}
+.horse-name { font-size: 13px; color: var(--text); }
+.horse-score {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  text-align: right;
+}
+.horse-rank-pct {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text3);
+  text-align: right;
+}
+.shap-bar-wrap {
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.shap-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--gold);
+  transition: width .8s ease;
+}
+
+/* TICKET SECTION */
+.ticket-label {
+  font-size: 10px;
+  letter-spacing: .1em;
+  color: var(--text3);
+  text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
+  margin-bottom: 8px;
+}
+.tickets {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ticket {
+  display: grid;
+  grid-template-columns: 1fr 60px 60px 60px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg3);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: border-color .15s;
+}
+.ticket:hover { border-color: rgba(201,168,76,0.4); }
+.ticket.top-ev { border-color: rgba(76,175,125,0.4); background: rgba(76,175,125,0.04); }
+.ticket-combo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px;
+  letter-spacing: .05em;
+  color: var(--text);
+}
+.ticket-p {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text2);
+  text-align: right;
+}
+.ticket-ev {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  text-align: right;
+  font-weight: 500;
+}
+.ev-pos { color: var(--green); }
+.ev-neg { color: var(--red); }
+.ticket-kelly {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--gold);
+  text-align: right;
+}
+
+/* DETAIL PANEL */
+.detail-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 40px;
+  animation: fadeUp .5s ease both;
+}
+.detail-head {
+  padding: 20px 24px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.detail-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing:.08em; color: var(--gold); }
+.detail-body { padding: 24px; }
+
+/* EXPLANATION */
+.explanation {
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--text2);
+  background: var(--bg3);
+  border-radius: 10px;
+  padding: 18px 20px;
+  border-left: 3px solid var(--gold);
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+/* SHAP FEATURES */
+.shap-list { display: flex; flex-direction: column; gap: 8px; }
+.shap-item {
+  display: grid;
+  grid-template-columns: 180px 1fr 60px;
+  align-items: center;
+  gap: 12px;
+}
+.shap-feat { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; }
+.shap-track { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+.shap-fill { height: 100%; border-radius: 3px; }
+.shap-fill.pos { background: var(--green); }
+.shap-fill.neg { background: var(--red); }
+.shap-val { font-size: 11px; font-family: 'DM Mono', monospace; text-align: right; }
+.shap-val.pos { color: var(--green); }
+.shap-val.neg { color: var(--red); }
+
+/* ROI DASHBOARD */
+.roi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.roi-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+.roi-label { font-size: 10px; color: var(--text3); letter-spacing:.1em; text-transform:uppercase; font-family:'DM Mono',monospace; margin-bottom:6px; }
+.roi-val { font-family:'DM Mono',monospace; font-size:24px; font-weight:500; }
+.roi-sub { font-size:10px; color:var(--text3); font-family:'DM Mono',monospace; margin-top:3px; }
+
+/* SLICE TABLE */
+.slice-table { width:100%; border-collapse:collapse; font-size:12px; }
+.slice-table th {
+  text-align:left; padding:8px 12px;
+  font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+  color: var(--text3); font-family:'DM Mono',monospace;
+  border-bottom: 1px solid var(--border);
+  font-weight:400;
+}
+.slice-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-family:'DM Mono',monospace;
+  color: var(--text2);
+}
+.slice-table tr:last-child td { border-bottom: none; }
+.slice-table tr:hover td { background: rgba(255,255,255,0.02); }
+.roi-cell { font-weight:500; }
+.roi-cell.good { color: var(--green); }
+.roi-cell.bad { color: var(--red); }
+.roi-cell.mid { color: var(--gold); }
+
+/* NAV TABS */
+.nav-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+.nav-tab {
+  padding: 10px 20px;
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: .07em;
+  cursor: pointer;
+  color: var(--text3);
+  border-bottom: 2px solid transparent;
+  transition: all .15s;
+  text-transform: uppercase;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.nav-tab:hover { color: var(--text2); }
+.nav-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* MINI CHART */
+.chart-wrap { height: 120px; display: flex; align-items: flex-end; gap: 4px; padding: 10px 0; }
+.chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+.chart-bar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  transition: height .8s ease;
+  min-height: 4px;
+}
+.chart-bar.pos { background: var(--green); opacity: .8; }
+.chart-bar.neg { background: var(--red); opacity: .8; }
+.chart-xlabel { font-size: 9px; color: var(--text3); font-family:'DM Mono',monospace; }
+
+/* ANIMATIONS */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(16px); }
+  to { opacity:1; transform:translateY(0); }
+}
+.race-card:nth-child(1) { animation-delay:.05s; }
+.race-card:nth-child(2) { animation-delay:.1s; }
+.race-card:nth-child(3) { animation-delay:.15s; }
+.race-card:nth-child(4) { animation-delay:.2s; }
+.race-card:nth-child(5) { animation-delay:.25s; }
+.race-card:nth-child(6) { animation-delay:.3s; }
+
+/* MODEL STATUS */
+.model-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.model-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.model-card-label { font-size: 10px; color: var(--text3); font-family:'DM Mono',monospace; letter-spacing:.1em; text-transform:uppercase; margin-bottom:8px; }
+.model-card-val { font-family:'DM Mono',monospace; font-size: 20px; font-weight:500; }
+.model-card-sub { font-size: 11px; color: var(--text3); font-family:'DM Mono',monospace; margin-top:4px; }
+.status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
+.status-ok { background: var(--green); }
+.status-warn { background: var(--gold); }
+
+/* DRIFT MONITOR */
+.drift-row { display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--border); }
+.drift-row:last-child { border-bottom:none; }
+.drift-feat { font-size:12px; font-family:'DM Mono',monospace; color:var(--text2); flex:1; }
+.drift-bar-wrap { width:120px; height:6px; background:var(--bg3); border-radius:3px; overflow:hidden; }
+.drift-bar { height:100%; border-radius:3px; background:var(--green); }
+.drift-bar.warn { background: var(--gold); }
+.drift-psi { font-size:11px; font-family:'DM Mono',monospace; color:var(--text3); width:40px; text-align:right; }
+
+/* UPDATE NOTICE */
+.update-bar {
+  background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .container { padding: 16px; }
+  .race-grid { grid-template-columns: 1fr; }
+  .stat-strip { grid-template-columns: repeat(3, 1fr); }
+  .roi-grid { grid-template-columns: repeat(2, 1fr); }
+  .model-grid { grid-template-columns: 1fr; }
+  .horse-row { grid-template-columns: 22px 1fr 48px 48px 50px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SANRENPUKU<span>AI PREDICTION SYSTEM v2.0</span></div>
+  <div class="header-meta">
+    <span><span class="live-dot"></span>LIVE</span>
+    <span id="clock">--:--:--</span>
+    <span id="today-date">----/--/--</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="update-bar">
+    <span class="live-dot"></span>
+    <span>本日のデータ: <strong id="update-time" style="color:var(--gold)">毎日 05:30 自動更新</strong> — Walk-Forward検証済み / Plackett-Luce確率 / Half-Kelly推奨賭け金</span>
+  </div>
+
+  <!-- STAT STRIP -->
+  <div class="stat-strip">
+    <div class="stat-cell">
+      <div class="label">本日レース数</div>
+      <div class="val gold" id="stat-races">12</div>
+      <div class="sub">JRA 8 / NAR 4</div>
+    </div>
+    <div class="stat-cell">
+      <div class="label">推奨買い目</div>
+      <div class="val" id="stat-tickets">47</div>
+      <div class="sub">EV > 0 のみ</div>
+    </div>
+    <div class="stat-cell">
+      <div class="label">平均EV</div>
+      <div class="val up" id="stat-ev">+0.082</div>
+      <div class="sub">期待値</div>
+    </div>
+    <div class="stat-cell">
+      <div class="label">今週ROI</div>
+      <div class="val up" id="stat-roi">93.4%</div>
+      <div class="sub">回収率</div>
+    </div>
+    <div class="stat-cell">
+      <div class="label">モデル精度</div>
+      <div class="val gold" id="stat-auc">NDCG@3 0.71</div>
+      <div class="sub">Walk-Forward済</div>
+    </div>
+  </div>
+
+  <!-- NAV TABS -->
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('predictions')">本日の予測</button>
+    <button class="nav-tab" onclick="switchTab('roi')">ROIダッシュボード</button>
+    <button class="nav-tab" onclick="switchTab('model')">モデル状態</button>
+  </div>
+
+  <!-- TAB: PREDICTIONS -->
+  <div id="tab-predictions" class="tab-panel active">
+    <div class="section-title">本日の3連複予測</div>
+
+    <div class="race-grid" id="race-grid"></div>
+
+    <div class="section-title">予測詳細</div>
+    <div class="detail-panel" id="detail-panel">
+      <div class="detail-head">
+        <div class="detail-title" id="detail-title">レースを選択してください</div>
+        <div style="display:flex;gap:8px;" id="detail-badges"></div>
+      </div>
+      <div class="detail-body" id="detail-body">
+        <div style="color:var(--text3);font-size:13px;text-align:center;padding:40px 0;">レースカードをクリックすると詳細が表示されます</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: ROI -->
+  <div id="tab-roi" class="tab-panel">
+    <div class="section-title">ROI ダッシュボード</div>
+    <div class="roi-grid">
+      <div class="roi-card">
+        <div class="roi-label">今週回収率</div>
+        <div class="roi-val" style="color:var(--green)">93.4%</div>
+        <div class="roi-sub">目標: 90〜105%</div>
+      </div>
+      <div class="roi-card">
+        <div class="roi-label">今月回収率</div>
+        <div class="roi-val" style="color:var(--gold)">88.7%</div>
+        <div class="roi-sub">賭け金対比</div>
+      </div>
+      <div class="roi-card">
+        <div class="roi-label">最大DD</div>
+        <div class="roi-val" style="color:var(--text)">-8.3%</div>
+        <div class="roi-sub">上限: -20%</div>
+      </div>
+      <div class="roi-card">
+        <div class="roi-label">Racing Sharpe</div>
+        <div class="roi-val" style="color:var(--gold)">0.83</div>
+        <div class="roi-sub">週次換算</div>
+      </div>
+    </div>
+
+    <!-- Weekly chart -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;">
+      <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">週次ROI推移（直近8週）</div>
+      <div class="chart-wrap" id="roi-chart"></div>
+    </div>
+
+    <div class="section-title">スライス別ROI</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <table class="slice-table">
+        <thead>
+          <tr>
+            <th>馬場</th><th>距離帯</th><th>件数</th>
+            <th>回収率</th><th>的中率</th><th>平均EV</th>
+          </tr>
+        </thead>
+        <tbody id="slice-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: MODEL -->
+  <div id="tab-model" class="tab-panel">
+    <div class="section-title">モデル状態</div>
+    <div class="model-grid">
+      <div class="model-card">
+        <div class="model-card-label">評価方式</div>
+        <div class="model-card-val" style="font-size:14px;color:var(--green)">Walk-Forward</div>
+        <div class="model-card-sub">月次 / embargo 7日</div>
+      </div>
+      <div class="model-card">
+        <div class="model-card-label">主モデル</div>
+        <div class="model-card-val" style="font-size:14px;">LGBMRanker</div>
+        <div class="model-card-sub">lambdarank / NDCG@3</div>
+      </div>
+      <div class="model-card">
+        <div class="model-card-label">確率エンジン</div>
+        <div class="model-card-val" style="font-size:14px;color:var(--gold);">Plackett-Luce</div>
+        <div class="model-card-sub">3連複 exact計算</div>
+      </div>
+      <div class="model-card">
+        <div class="model-card-label">LogLoss</div>
+        <div class="model-card-val">0.412</div>
+        <div class="model-card-sub">8週平均比 -2.1%</div>
+      </div>
+      <div class="model-card">
+        <div class="model-card-label">Brier Score</div>
+        <div class="model-card-val">0.187</div>
+        <div class="model-card-sub">校正済み</div>
+      </div>
+      <div class="model-card">
+        <div class="model-card-label">特徴量数</div>
+        <div class="model-card-val">47</div>
+        <div class="model-card-sub">31 → 47 (RBF追加済)</div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;" class="section-title">特徴量重要度 — SHAP平均</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;">
+      <div class="shap-list" id="shap-global"></div>
+    </div>
+
+    <div style="margin-top:24px;" class="section-title">ドリフト監視 (PSI)</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;">
+      <div id="drift-list"></div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">
+        <span style="color:var(--green)">■</span> 正常 (&lt;0.10)　
+        <span style="color:var(--gold)">■</span> 注意 (0.10〜0.25)　
+        <span style="color:var(--red)">■</span> 警告 (&gt;0.25)
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ===== MOCK DATA =====
+const TODAY = new Date();
+const RACES = [
+  {
+    id: 'R01', name: '東京11R 安田記念', meta: '東京 / 芝1600m / 良',
+    badge: 'jra', time: '15:40', field: 16,
+    horses: [
+      { num: 7, name: 'ソングライン', score: 0.89, rankPct: 0.94, shap: 0.42 },
+      { num: 3, name: 'シュネルマイスター', score: 0.81, rankPct: 0.87, shap: 0.35 },
+      { num: 11, name: 'セリフォス', score: 0.74, rankPct: 0.79, shap: 0.28 },
+      { num: 5, name: 'イルーシヴパンサー', score: 0.61, rankPct: 0.65, shap: 0.21 },
+    ],
+    tickets: [
+      { combo: '3-7-11', p: 0.068, ev: 0.142, kelly: '¥310', topEv: true },
+      { combo: '3-7-5',  p: 0.051, ev: 0.093, kelly: '¥210' },
+      { combo: '5-7-11', p: 0.044, ev: 0.071, kelly: '¥180' },
+      { combo: '3-5-11', p: 0.038, ev: 0.045, kelly: '¥140' },
+      { combo: '1-3-7',  p: 0.031, ev: 0.021, kelly: '¥80' },
+    ],
+    explanation: '軸はソングライン（7番）。当日の芝1600m良馬場で相対上がり3Fスコアが出走18頭中1位（agari3f_z: +0.42）、直近3走の4角平均通過位置も上位を維持しており脚質安定度が高い。対抗はシュネルマイスター（3番）で休養後の調教タイムが過去比+0.8秒の仕上がり、ローテーション間隔のRBFスコアがピーク付近の21日。3番手にセリフォス（11番）を据え、コース適性スコア（東京左回り直線525m）が同馬の傾向と一致。Plackett-Luce exact計算でこの3点組み合わせのEVは+0.142。Half-Kellyで310円推奨。',
+    shapFeats: [
+      { name: 'agari3f_z', val: 0.42, dir: 'pos' },
+      { name: 'style_score_wavg3', val: 0.31, dir: 'pos' },
+      { name: 'rest_rbf_21', val: 0.27, dir: 'pos' },
+      { name: 'jockey_course_wr', val: 0.19, dir: 'pos' },
+      { name: 'speed_idx_dist_z', val: 0.15, dir: 'pos' },
+    ]
+  },
+  {
+    id: 'R02', name: '阪神10R 鳴尾記念', meta: '阪神 / 芝2000m / 良',
+    badge: 'jra', time: '15:05', field: 12,
+    horses: [
+      { num: 4, name: 'マテンロウレオ', score: 0.83, rankPct: 0.91, shap: 0.38 },
+      { num: 8, name: 'ヴェルトライゼンデ', score: 0.77, rankPct: 0.84, shap: 0.31 },
+      { num: 2, name: 'アラタ', score: 0.69, rankPct: 0.73, shap: 0.24 },
+      { num: 6, name: 'フォワードアゲン', score: 0.55, rankPct: 0.58, shap: 0.18 },
+    ],
+    tickets: [
+      { combo: '2-4-8', p: 0.072, ev: 0.163, kelly: '¥340', topEv: true },
+      { combo: '4-6-8', p: 0.059, ev: 0.108, kelly: '¥250' },
+      { combo: '2-4-6', p: 0.047, ev: 0.079, kelly: '¥190' },
+      { combo: '4-8-10',p: 0.039, ev: 0.052, kelly: '¥150' },
+      { combo: '2-6-8', p: 0.033, ev: 0.018, kelly: '¥60' },
+    ],
+    explanation: '軸はマテンロウレオ（4番）。阪神2000m右回り坂ありコースへの適性スコアが高く、直近5走の傾き（trend_slope）がプラス圏で上昇馬の判定。対抗ヴェルトライゼンデ（8番）は同距離帯でのスピード指数偏差値が歴代上位10%。3番手にアラタ（2番）、騎手×コース条件別top3率がベイズ収縮後で28.4%と高水準。',
+    shapFeats: [
+      { name: 'course_geom_score', val: 0.38, dir: 'pos' },
+      { name: 'trend_slope_5r', val: 0.31, dir: 'pos' },
+      { name: 'speed_idx_class_z', val: 0.24, dir: 'pos' },
+      { name: 'rest_rbf_14', val: 0.19, dir: 'pos' },
+      { name: 'horse_weight_diff', val: -0.12, dir: 'neg' },
+    ]
+  },
+  {
+    id: 'R03', name: '大井9R 東京ダービー', meta: '大井 / ダ2000m / 良',
+    badge: 'nar', time: '20:10', field: 14,
+    horses: [
+      { num: 1, name: 'フルデプスリーダー', score: 0.86, rankPct: 0.93, shap: 0.44 },
+      { num: 9, name: 'サントノーレ', score: 0.79, rankPct: 0.85, shap: 0.36 },
+      { num: 5, name: 'ミトノオー', score: 0.71, rankPct: 0.76, shap: 0.29 },
+      { num: 12, name: 'ゴライコウ', score: 0.58, rankPct: 0.62, shap: 0.20 },
+    ],
+    tickets: [
+      { combo: '1-5-9', p: 0.081, ev: 0.191, kelly: '¥380', topEv: true },
+      { combo: '1-9-12',p: 0.063, ev: 0.124, kelly: '¥280' },
+      { combo: '1-5-12',p: 0.052, ev: 0.087, kelly: '¥210' },
+      { combo: '5-9-12',p: 0.041, ev: 0.053, kelly: '¥150' },
+      { combo: '1-2-9', p: 0.035, ev: 0.029, kelly: '¥90' },
+    ],
+    explanation: '大井ダート2000mはNARモデル（南関東）で評価。フルデプスリーダー（1番）は同場同距離リピート成績が高く、地元騎手との組み合わせ成績もベイズ収縮後上位。直前オッズドリフト監視で締切30分前比-8.2倍の資金流入あり（期待値強化サイン）。対抗サントノーレ（9番）は控除率72.5%（大井TCK）を考慮したEV計算でも+0.191を維持。',
+    shapFeats: [
+      { name: 'same_course_dist_roi', val: 0.44, dir: 'pos' },
+      { name: 'odds_drift_30min', val: 0.36, dir: 'pos' },
+      { name: 'local_jockey_wr', val: 0.29, dir: 'pos' },
+      { name: 'style_score_wavg3', val: 0.21, dir: 'pos' },
+      { name: 'layoff_150plus', val: -0.08, dir: 'neg' },
+    ]
+  },
+  {
+    id: 'R04', name: '東京9R 八王子特別', meta: '東京 / 芝1800m / 稍重',
+    badge: 'jra', time: '14:15', field: 18,
+    horses: [
+      { num: 14, name: 'ビューティフルデイ', score: 0.79, rankPct: 0.88, shap: 0.37 },
+      { num: 6, name: 'クリノプレミアム', score: 0.72, rankPct: 0.80, shap: 0.30 },
+      { num: 3, name: 'トーセンバジル', score: 0.65, rankPct: 0.71, shap: 0.23 },
+      { num: 10, name: 'ネクストムーン', score: 0.54, rankPct: 0.60, shap: 0.16 },
+    ],
+    tickets: [
+      { combo: '6-14-3', p: 0.059, ev: 0.131, kelly: '¥290', topEv: true },
+      { combo: '3-6-14', p: 0.048, ev: 0.096, kelly: '¥220' },
+      { combo: '6-10-14',p: 0.041, ev: 0.068, kelly: '¥170' },
+      { combo: '3-10-14',p: 0.034, ev: 0.041, kelly: '¥120' },
+      { combo: '3-6-10', p: 0.028, ev: 0.012, kelly: '¥40' },
+    ],
+    explanation: '稍重馬場でビューティフルデイ（14番）の馬場適性スコアが良馬場比+12%上昇。going別スピード指数補正で稍重時のz-scoreが全出走馬中最高値。クリノプレミアム（6番）は枠順×距離バイアス（東京1800m外枠）の階層事前率が有利。',
+    shapFeats: [
+      { name: 'going_adapt_z', val: 0.37, dir: 'pos' },
+      { name: 'draw_bias_score', val: 0.30, dir: 'pos' },
+      { name: 'agari3f_rank_pct', val: 0.23, dir: 'pos' },
+      { name: 'rest_rbf_35', val: 0.19, dir: 'pos' },
+      { name: 'field_size_effect', val: -0.14, dir: 'neg' },
+    ]
+  },
+  {
+    id: 'R05', name: '川崎8R 川崎記念', meta: '川崎 / ダ2100m / 良',
+    badge: 'nar', time: '19:45', field: 10,
+    horses: [
+      { num: 3, name: 'カジノフォンテン', score: 0.91, rankPct: 0.96, shap: 0.48 },
+      { num: 7, name: 'チュウワウィザード', score: 0.82, rankPct: 0.88, shap: 0.39 },
+      { num: 5, name: 'ノンコノユメ', score: 0.68, rankPct: 0.73, shap: 0.27 },
+      { num: 1, name: 'マグニフィカ', score: 0.51, rankPct: 0.55, shap: 0.17 },
+    ],
+    tickets: [
+      { combo: '3-5-7', p: 0.094, ev: 0.217, kelly: '¥430', topEv: true },
+      { combo: '3-7-1', p: 0.071, ev: 0.153, kelly: '¥320' },
+      { combo: '3-5-1', p: 0.058, ev: 0.109, kelly: '¥250' },
+      { combo: '1-5-7', p: 0.044, ev: 0.063, kelly: '¥160' },
+      { combo: '5-7-2', p: 0.037, ev: 0.034, kelly: '¥100' },
+    ],
+    explanation: '川崎ダート2100mはNARモデル（南関東）。カジノフォンテン（3番）は小回りコーナリング指数が群を抜いており、4角通過位置の直近3走加重平均が0.21（逃げ〜先行）で川崎の先行有利バイアスと完全一致。EV +0.217はNARモデルの閾値0.05を大幅超過。',
+    shapFeats: [
+      { name: 'corner_geom_score', val: 0.48, dir: 'pos' },
+      { name: 'front_run_bias_nar', val: 0.39, dir: 'pos' },
+      { name: 'same_track_wr', val: 0.27, dir: 'pos' },
+      { name: 'odds_drift_10min', val: 0.18, dir: 'pos' },
+      { name: 'going_adapt_z', val: 0.14, dir: 'pos' },
+    ]
+  },
+  {
+    id: 'R06', name: '阪神9R 六甲特別', meta: '阪神 / 芝1400m / 良',
+    badge: 'jra', time: '14:45', field: 15,
+    horses: [
+      { num: 2, name: 'サトノレーヴ', score: 0.76, rankPct: 0.85, shap: 0.34 },
+      { num: 11, name: 'ダイシンバグ', score: 0.70, rankPct: 0.78, shap: 0.28 },
+      { num: 7, name: 'ボンドガール', score: 0.63, rankPct: 0.69, shap: 0.22 },
+      { num: 4, name: 'アヴェラーレ', score: 0.52, rankPct: 0.57, shap: 0.15 },
+    ],
+    tickets: [
+      { combo: '2-7-11', p: 0.061, ev: 0.118, kelly: '¥260', topEv: true },
+      { combo: '2-4-11', p: 0.049, ev: 0.083, kelly: '¥200' },
+      { combo: '4-7-11', p: 0.042, ev: 0.059, kelly: '¥160' },
+      { combo: '2-7-4', p: 0.035, ev: 0.034, kelly: '¥110' },
+      { combo: '7-11-14',p: 0.029, ev: 0.011, kelly: '¥35' },
+    ],
+    explanation: 'サトノレーヴ（2番）は阪神1400m短距離でテンの速さスコアが上位、走破タイムの絶対z-scoreと相対順位percentileが両方高い二本立ての評価で安定。ダイシンバグ（11番）は騎手×阪神×1400mの条件別成績がm-estimate収縮後25.3%で高水準。',
+    shapFeats: [
+      { name: 'early_speed_score', val: 0.34, dir: 'pos' },
+      { name: 'abs_3F_z', val: 0.28, dir: 'pos' },
+      { name: 'rank_3F_pct', val: 0.22, dir: 'pos' },
+      { name: 'jockey_cond_bayes', val: 0.15, dir: 'pos' },
+      { name: 'rest_rbf_14', val: -0.11, dir: 'neg' },
+    ]
+  },
+];
+
+const SLICE_DATA = [
+  { surface:'芝', dist:'短距離', cnt:312, roi:97.2, hit:18.3, ev:0.091 },
+  { surface:'芝', dist:'マイル・中距離', cnt:487, roi:94.1, hit:16.8, ev:0.074 },
+  { surface:'芝', dist:'長距離', cnt:198, roi:88.4, hit:14.2, ev:0.051 },
+  { surface:'ダート', dist:'短距離', cnt:271, roi:91.7, hit:15.9, ev:0.068 },
+  { surface:'ダート', dist:'マイル・中距離', cnt:419, roi:96.3, hit:17.4, ev:0.083 },
+  { surface:'ダート(NAR)', dist:'南関東', cnt:183, roi:103.8, hit:19.1, ev:0.112 },
+  { surface:'ダート(NAR)', dist:'その他地方', cnt:144, roi:87.2, hit:13.8, ev:0.044 },
+];
+
+const WEEKLY_ROI = [82.1, 91.4, 88.7, 95.2, 79.3, 101.4, 93.8, 93.4];
+
+const GLOBAL_SHAP = [
+  { name: 'agari3f_z', val: 0.31 },
+  { name: 'style_score_wavg3', val: 0.27 },
+  { name: 'speed_idx_class_z', val: 0.24 },
+  { name: 'same_course_dist_roi', val: 0.21 },
+  { name: 'rest_rbf_14/21', val: 0.19 },
+  { name: 'jockey_cond_bayes', val: 0.17 },
+  { name: 'odds_drift_30min', val: 0.15 },
+  { name: 'course_geom_score', val: 0.13 },
+  { name: 'horse_weight_diff', val: 0.11 },
+  { name: 'trend_slope_5r', val: 0.09 },
+];
+
+const DRIFT_DATA = [
+  { name: 'win_odds_dist', psi: 0.04 },
+  { name: 'agari3f_z_dist', psi: 0.07 },
+  { name: 'model_score_dist', psi: 0.09 },
+  { name: 'rest_days_dist', psi: 0.13 },
+  { name: 'field_size_dist', psi: 0.06 },
+];
+
+// num colors
+const NUM_COLORS = [
+  '#e05252','#5b8dee','#4caf7d','#e8c96a','#a66dd4',
+  '#5bbde8','#e87c5b','#b0b0b0','#e05252','#5b8dee',
+  '#4caf7d','#e8c96a','#a66dd4','#5bbde8','#e87c5b',
+  '#b0b0b0','#e05252','#5b8dee'
+];
+
+// ===== RENDER =====
+function renderRaces() {
+  const grid = document.getElementById('race-grid');
+  grid.innerHTML = '';
+  RACES.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'race-card';
+    card.id = 'card-' + r.id;
+    card.onclick = () => selectRace(r);
+
+    const topTicket = r.tickets.find(t => t.topEv);
+    card.innerHTML = `
+      <div class="race-card-head">
+        <div>
+          <div class="race-name">${r.name}</div>
+          <div class="race-meta">${r.meta} / ${r.time} / ${r.field}頭</div>
+        </div>
+        <span class="race-badge badge-${r.badge}">${r.badge.toUpperCase()}</span>
+      </div>
+      <div class="race-card-body">
+        <div class="horse-rows">
+          ${r.horses.slice(0,3).map(h => `
+            <div class="horse-row">
+              <div class="horse-num" style="background:${NUM_COLORS[h.num-1]}22;color:${NUM_COLORS[h.num-1]};border:1px solid ${NUM_COLORS[h.num-1]}44">${h.num}</div>
+              <div class="horse-name">${h.name}</div>
+              <div class="horse-score" style="color:var(--gold)">${h.score.toFixed(2)}</div>
+              <div class="horse-rank-pct">${(h.rankPct*100).toFixed(0)}%ile</div>
+              <div class="shap-bar-wrap"><div class="shap-bar" style="width:${h.shap/0.5*100}%"></div></div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="ticket-label">推奨3連複（上位5点）</div>
+        <div class="tickets">
+          ${r.tickets.slice(0,3).map(t => `
+            <div class="ticket${t.topEv?' top-ev':''}">
+              <div class="ticket-combo">${t.combo}</div>
+              <div class="ticket-p">${(t.p*100).toFixed(1)}%</div>
+              <div class="ticket-ev ${t.ev>0?'ev-pos':'ev-neg'}">EV ${t.ev>0?'+':''}${t.ev.toFixed(3)}</div>
+              <div class="ticket-kelly">${t.kelly}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function selectRace(r) {
+  document.querySelectorAll('.race-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('card-' + r.id).classList.add('selected');
+
+  document.getElementById('detail-title').textContent = r.name;
+  document.getElementById('detail-badges').innerHTML = `
+    <span class="race-badge badge-${r.badge}">${r.badge.toUpperCase()}</span>
+    <span class="race-badge badge-ev">PL-Exact</span>
+  `;
+
+  document.getElementById('detail-body').innerHTML = `
+    <div class="explanation">${r.explanation}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+      <div>
+        <div class="ticket-label" style="margin-bottom:10px;">全推奨買い目（EV順）</div>
+        <div class="tickets">
+          ${r.tickets.map(t => `
+            <div class="ticket${t.topEv?' top-ev':''}">
+              <div class="ticket-combo">${t.combo}</div>
+              <div class="ticket-p">${(t.p*100).toFixed(1)}%</div>
+              <div class="ticket-ev ${t.ev>0?'ev-pos':'ev-neg'}">EV ${t.ev>0?'+':''}${t.ev.toFixed(3)}</div>
+              <div class="ticket-kelly">${t.kelly}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div>
+        <div class="ticket-label" style="margin-bottom:10px;">SHAP根拠（軸馬）</div>
+        <div class="shap-list">
+          ${r.shapFeats.map(f => `
+            <div class="shap-item">
+              <div class="shap-feat">${f.name}</div>
+              <div class="shap-track"><div class="shap-fill ${f.dir}" style="width:${Math.abs(f.val)/0.5*100}%"></div></div>
+              <div class="shap-val ${f.dir}">${f.dir==='pos'?'+':''}${f.val.toFixed(2)}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="margin-top:14px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;line-height:1.7;">
+          <div>確率エンジン: Plackett-Luce exact</div>
+          <div>EV式: p × display_odds − 1.0</div>
+          <div>賭け金: Half-Kelly × 上限1%/レース</div>
+          ${r.badge==='nar'?`<div style="color:var(--gold)">払戻率: 大井72.5% 適用</div>`:'<div>払戻率: JRA 75% 適用</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('detail-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderROIChart() {
+  const wrap = document.getElementById('roi-chart');
+  const maxV = Math.max(...WEEKLY_ROI);
+  const minV = Math.min(...WEEKLY_ROI);
+  const h = 100;
+  WEEKLY_ROI.forEach((v, i) => {
+    const barH = Math.max(4, ((v - 60) / (maxV - 60)) * h);
+    const div = document.createElement('div');
+    div.className = 'chart-bar-wrap';
+    div.innerHTML = `
+      <div class="chart-bar ${v>=90?'pos':'neg'}" style="height:${barH}px;"></div>
+      <div class="chart-xlabel">W${i+1}</div>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+function renderSlice() {
+  const tbody = document.getElementById('slice-tbody');
+  SLICE_DATA.forEach(row => {
+    const roiClass = row.roi >= 95 ? 'good' : row.roi >= 85 ? 'mid' : 'bad';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${row.surface}</td>
+      <td>${row.dist}</td>
+      <td>${row.cnt}</td>
+      <td class="roi-cell ${roiClass}">${row.roi.toFixed(1)}%</td>
+      <td>${row.hit.toFixed(1)}%</td>
+      <td class="${row.ev>0.08?'roi-cell good':''}">${row.ev>0?'+':''}${row.ev.toFixed(3)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderGlobalShap() {
+  const el = document.getElementById('shap-global');
+  const max = GLOBAL_SHAP[0].val;
+  GLOBAL_SHAP.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'shap-item';
+    div.innerHTML = `
+      <div class="shap-feat">${f.name}</div>
+      <div class="shap-track"><div class="shap-fill pos" style="width:${f.val/max*100}%"></div></div>
+      <div class="shap-val pos">+${f.val.toFixed(2)}</div>
+    `;
+    el.appendChild(div);
+  });
+}
+
+function renderDrift() {
+  const el = document.getElementById('drift-list');
+  DRIFT_DATA.forEach(d => {
+    const isWarn = d.psi >= 0.10;
+    const div = document.createElement('div');
+    div.className = 'drift-row';
+    div.innerHTML = `
+      <div class="drift-feat">${d.name}</div>
+      <div class="drift-bar-wrap"><div class="drift-bar ${isWarn?'warn':''}" style="width:${Math.min(100,d.psi/0.25*100)}%"></div></div>
+      <div class="drift-psi" style="color:${isWarn?'var(--gold)':'var(--green)'}">${d.psi.toFixed(2)}</div>
+      <div style="font-size:10px;font-family:'DM Mono',monospace;color:${isWarn?'var(--gold)':'var(--green)'};">${isWarn?'注意':'正常'}</div>
+    `;
+    el.appendChild(div);
+  });
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toTimeString().slice(0,8);
+  document.getElementById('today-date').textContent =
+    now.toLocaleDateString('ja-JP', {year:'numeric',month:'2-digit',day:'2-digit'});
+  document.getElementById('update-time').textContent =
+    now.toLocaleDateString('ja-JP',{month:'2-digit',day:'2-digit'}) + ' 05:30 自動更新済';
+}
+
+// INIT
+renderRaces();
+renderROIChart();
+renderSlice();
+renderGlobalShap();
+renderDrift();
+updateClock();
+setInterval(updateClock, 1000);
+
+// auto-select first race
+setTimeout(() => selectRace(RACES[0]), 400);
+</script>
+</body>
+</html>
