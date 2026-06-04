@@ -1,13 +1,14 @@
 """
 今日の予測をDBに保存してindex.htmlを更新する。
-MLモデルが未学習の場合はオッズ逆数（市場確率）をスコアとして使用し、
-Plackett-Luce で3連複確率を計算する。
+- MLモデル未学習時: オッズ逆数（市場確率）をスコアとして使用
+- MLモデル学習済み: LGBMRanker + Isotonic校正で本番予測
 """
 from __future__ import annotations
 
 import json
+import pickle
 import sys
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
 import numpy as np
@@ -18,10 +19,46 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from db.database import get_conn, init_db
 from probability.plackett_luce import all_trifecta_box_probs, softmax_worth
 from probability.expected_value import score_bet
+
+MODEL_DIR  = Path(__file__).parent.parent / "models" / "trained"
+FLAG_PATH  = MODEL_DIR / "model_ready.flag"
+RANKER_PATH = MODEL_DIR / "ranker.txt"
+CAL_PATH    = MODEL_DIR / "calibrator.pkl"
+
+from pipeline.train_pipeline import FEATURE_COLS
 from pipeline.daily_update import generate_html, _git_push, _load_roi_stats
 
 
-def run_predict_today(target_date: date | None = None) -> None:
+def _ml_model_ready() -> bool:
+    return FLAG_PATH.exists() and RANKER_PATH.exists() and CAL_PATH.exists()
+
+
+def _score_with_ml(horses_df: pd.DataFrame, race_id: str) -> np.ndarray:
+    """LGBMRanker + 校正器でスコアを計算して返す。"""
+    import lightgbm as lgb
+    booster = lgb.Booster(model_file=str(RANKER_PATH))
+    with open(CAL_PATH, "rb") as f:
+        calibrator = pickle.load(f)
+
+    # 特徴量を training_features から取得
+    with get_conn() as conn:
+        feats = pd.read_sql_query(
+            f"SELECT * FROM training_features WHERE race_id = ?",
+            conn.connection, params=(race_id,),
+        )
+    if feats.empty:
+        return None
+
+    # horse_id でマージ
+    merged = horses_df.merge(feats[["horse_id"] + FEATURE_COLS],
+                              on="horse_id", how="left")
+    X = merged[FEATURE_COLS].fillna(0)
+    raw_scores = booster.predict(X)
+    cal_scores = calibrator.predict(raw_scores)
+    return cal_scores
+
+
+def run_predict_today(target_date: date | None = None, use_ml_model: bool | None = None) -> None:
     """
     今日のNARレースデータをDBから読み込み、
     オッズベースの予測スコアを生成してindex.htmlを更新する。
@@ -30,7 +67,11 @@ def run_predict_today(target_date: date | None = None) -> None:
         target_date = date.today()
     date_str = target_date.isoformat()
 
-    print(f"=== 今日の予測生成: {date_str} ===")
+    if use_ml_model is None:
+        use_ml_model = _ml_model_ready()
+
+    model_label = "LGBMRanker+校正" if use_ml_model else "市場確率（モデル未学習）"
+    print(f"=== 今日の予測生成: {date_str} [{model_label}] ===")
     init_db()
 
     # ── 今日のレース取得 ─────────────────────────
@@ -89,17 +130,24 @@ def run_predict_today(target_date: date | None = None) -> None:
 
         horses_df = pd.DataFrame([dict(h) for h in horses_db])
 
-        # ── スコア計算（オッズ逆数 = 市場確率）───────────────
+        # ── スコア計算 ────────────────────────────────────────
         horses_df["win_odds"] = pd.to_numeric(horses_df["win_odds"], errors="coerce")
-        horses_df = horses_df.dropna(subset=["win_odds"])
-        horses_df = horses_df[horses_df["win_odds"] > 0].copy()
+        horses_df = horses_df[horses_df["win_odds"].notna() & (horses_df["win_odds"] > 0)].copy()
 
         if len(horses_df) < 3:
             continue
 
-        # 市場確率をスコアとして使う
-        inv_odds  = 1.0 / horses_df["win_odds"].values
-        scores    = inv_odds / inv_odds.sum()   # 正規化勝率
+        if use_ml_model:
+            ml_scores = _score_with_ml(horses_df, race_id)
+            if ml_scores is not None and len(ml_scores) == len(horses_df):
+                scores = ml_scores
+            else:
+                # フォールバック: 市場確率
+                inv_odds = 1.0 / horses_df["win_odds"].values
+                scores   = inv_odds / inv_odds.sum()
+        else:
+            inv_odds = 1.0 / horses_df["win_odds"].values
+            scores   = inv_odds / inv_odds.sum()
 
         # ── PL確率で3連複候補を生成 ──────────────────────────
         worth     = softmax_worth(np.log(scores + 1e-9))
