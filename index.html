@@ -19,10 +19,104 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:"Noto Sans JP",sans-serif;background:var(--bg);color:var(--text1);font-size:14px;line-height:1.6}
 button{cursor:pointer;font-family:inherit}
-.header{background:var(--header);color:#fff;padding:14px 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+/* ── HERO BANNER ── */
+.hero-banner{
+  position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#0d0d1a 0%,#1a1a2e 40%,#16213e 70%,#0f3460 100%);
+  border-bottom:3px solid #c9a84c;
+}
+.hero-banner::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 50%,
+    rgba(201,168,76,.18) 0%, rgba(201,168,76,.06) 40%, transparent 70%);
+  pointer-events:none;
+}
+.hero-inner{
+  max-width:1280px;margin:0 auto;
+  display:flex;align-items:center;gap:0;
+  position:relative;z-index:1;
+}
+/* 左：キービジュアル画像エリア */
+.hero-keyvis{
+  flex-shrink:0;width:260px;height:130px;
+  overflow:hidden;position:relative;
+}
+.hero-keyvis img{
+  width:100%;height:100%;object-fit:cover;object-position:center;
+  opacity:.95;
+}
+.hero-keyvis-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to right, transparent 55%, #1a1a2e 100%);
+}
+/* 右：テキスト＋バッジ */
+.hero-content{
+  flex:1;padding:14px 20px 14px 16px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.hero-brand{display:flex;flex-direction:column;gap:3px}
+.hero-title{
+  font-size:0px; /* テキストは非表示にして画像に置き換え */
+  display:flex;align-items:center;gap:10px;
+}
+.hero-title-text{
+  font-size:22px;font-weight:900;letter-spacing:.04em;
+  background:linear-gradient(135deg,#f5d06b 0%,#c9a84c 40%,#f5d06b 60%,#a87a2a 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  text-shadow:none;
+  filter:drop-shadow(0 0 8px rgba(201,168,76,.6));
+}
+.hero-sub{font-size:10px;color:#94A3B8;font-family:"DM Mono",monospace}
+.hero-tagline{
+  font-size:11px;font-weight:700;
+  color:#c9a84c;letter-spacing:.08em;
+  text-transform:uppercase;
+  animation:pulse-gold 2s ease-in-out infinite;
+}
+@keyframes pulse-gold{
+  0%,100%{opacity:1;text-shadow:0 0 6px rgba(201,168,76,.4)}
+  50%{opacity:.8;text-shadow:0 0 14px rgba(201,168,76,.9)}
+}
+.hero-badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hero-badge{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(201,168,76,.3);
+  border-radius:5px;padding:3px 10px;
+  font-size:11px;font-family:"DM Mono",monospace;
+  color:#e2e8f0;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.dot{width:6px;height:6px;border-radius:50%;background:#4ADE80;display:inline-block}
+/* HOT STREAK バッジ */
+.hot-streak-badge{
+  background:linear-gradient(135deg,#7c1a1a,#c0392b);
+  border:1px solid #e74c3c;border-radius:6px;
+  padding:3px 10px;font-size:10px;font-weight:900;
+  color:#fff;letter-spacing:.1em;
+  display:inline-flex;align-items:center;gap:4px;
+  box-shadow:0 0 10px rgba(231,76,60,.5);
+  animation:pulse-red 1.5s ease-in-out infinite;
+}
+@keyframes pulse-red{
+  0%,100%{box-shadow:0 0 6px rgba(231,76,60,.4)}
+  50%{box-shadow:0 0 16px rgba(231,76,60,.9)}
+}
+/* レスポンシブ */
+@media(max-width:640px){
+  .hero-keyvis{width:140px;height:80px}
+  .hero-title-text{font-size:16px}
+  .hero-tagline{font-size:9px}
+  .hero-badges{gap:4px}
+}
+
+/* ── HEADER (sticky) ── */
+.header{background:rgba(26,26,46,.97);color:#fff;padding:8px 20px;position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 8px rgba(0,0,0,.4);border-bottom:1px solid rgba(201,168,76,.2)}
 .header-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.header-title{font-size:18px;font-weight:700;letter-spacing:.02em}
-.header-sub{font-size:10px;color:#94A3B8;display:block;font-family:"DM Mono",monospace}
+.header-title{font-size:14px;font-weight:700;letter-spacing:.02em;
+  background:linear-gradient(135deg,#f5d06b,#c9a84c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.header-sub{font-size:9px;color:#94A3B8;display:block;font-family:"DM Mono",monospace}
 .header-badge{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:5px;
   padding:3px 10px;font-size:11px;font-family:"DM Mono",monospace;display:inline-flex;align-items:center;gap:5px}
 .dot{width:6px;height:6px;border-radius:50%;background:#4ADE80;display:inline-block}
@@ -116,16 +210,41 @@ button{cursor:pointer;font-family:inherit}
 </style>
 </head>
 <body>
+<!-- ══ HERO BANNER ══ -->
+<div class="hero-banner">
+  <div class="hero-inner">
+    <!-- キービジュアル（画像を差し替え可能） -->
+    <div class="hero-keyvis">
+      <img src="images/hero_banner.jpg" alt="競馬大勝負 HOT STREAK"
+           onerror="this.style.display='none';this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,#0d0d1a,#1a1a2e)&quot;><span style=&quot;font-size:60px&quot;>🐎</span></div>'">
+      <div class="hero-keyvis-overlay"></div>
+    </div>
+    <!-- コンテンツ -->
+    <div class="hero-content">
+      <div class="hero-brand">
+        <div class="hero-title">
+          <span class="hero-title-text">競馬大勝負 AI</span>
+          <span class="hot-streak-badge">🔥 HOT STREAK</span>
+        </div>
+        <span class="hero-sub">SANRENPUKU AI — 地方競馬3連複予測システム v2.0</span>
+        <span class="hero-tagline">⚡ Harville × Plackett-Luce × System A/B</span>
+      </div>
+      <div class="hero-badges">
+        <span class="hero-badge"><span class="dot"></span><span id="today-date">—</span></span>
+        <span class="hero-badge" id="clock">—</span>
+        <span class="hero-badge">更新: <span id="update-time">05:30</span></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STICKY HEADER ══ -->
 <header class="header">
   <div class="header-inner">
-    <div>
-      <div class="header-title">🐎 SANRENPUKU AI</div>
-      <span class="header-sub">競馬3連複予測システム v2.0</span>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <span class="header-badge"><span class="dot"></span><span id="today-date">—</span></span>
-      <span class="header-badge" id="clock">—</span>
-      <span class="header-badge">更新: <span id="update-time">05:30</span></span>
+    <div class="header-title">🐎 SANRENPUKU AI</div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <span class="header-badge"><span id="today-date-h">—</span></span>
+      <span class="header-badge" id="clock-h">—</span>
     </div>
   </div>
 </header>
@@ -399,9 +518,21 @@ function renderTomorrow(){
 }
 function updateClock(){
   const n=new Date();
-  document.getElementById("clock").textContent=n.toTimeString().slice(0,8);
-  document.getElementById("today-date").textContent=n.toLocaleDateString("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit"});
-  document.getElementById("update-time").textContent=n.toLocaleDateString("ja-JP",{month:"2-digit",day:"2-digit"})+" 05:30";
+  const t=n.toTimeString().slice(0,8);
+  const d=n.toLocaleDateString("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit"});
+  const ds=n.toLocaleDateString("ja-JP",{month:"2-digit",day:"2-digit"})+" 05:30";
+  // hero banner 用
+  const el1=document.getElementById("clock");
+  const el2=document.getElementById("today-date");
+  const el3=document.getElementById("update-time");
+  if(el1) el1.textContent=t;
+  if(el2) el2.textContent=d;
+  if(el3) el3.textContent=ds;
+  // sticky header 用
+  const el1h=document.getElementById("clock-h");
+  const el2h=document.getElementById("today-date-h");
+  if(el1h) el1h.textContent=t;
+  if(el2h) el2h.textContent=d;
 }
 function renderYesterday(){
   const el=document.getElementById("yest-content");if(!el)return;
