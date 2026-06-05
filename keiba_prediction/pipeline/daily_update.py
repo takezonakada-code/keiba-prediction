@@ -60,9 +60,18 @@ def run_daily(target_date: date | None = None) -> None:
     except Exception as e:
         print(f"  前日評価スキップ（{e}）")
 
-    # ── STEP 2: 本日NAR全場データ取得 ────────────
+    # ── STEP 2: 本日NAR全場データ取得 + 自動リトライ ──
     print("--- STEP2: 本日NAR取得 ---")
     _run_nar_scraping(target_date)
+
+    # kg_不正IDの修復 & entries→results コピー
+    try:
+        from pipeline.auto_retry import fix_invalid_ids, copy_entries_to_results
+        fix_invalid_ids(today_str)
+        n = copy_entries_to_results(today_str)
+        print(f"  entries→results コピー: {n}頭")
+    except Exception as e:
+        print(f"  修復スキップ: {e}")
 
     date_str = today_str
 

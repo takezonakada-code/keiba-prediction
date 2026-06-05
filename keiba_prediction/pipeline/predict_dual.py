@@ -75,6 +75,14 @@ def run_dual_predict(
     except Exception as e:
         print(f"  NAR取得スキップ: {e}")
 
+    # kg_不正ID修復 & entries→results コピー
+    try:
+        from pipeline.auto_retry import fix_invalid_ids, copy_entries_to_results
+        fix_invalid_ids(date_str)
+        copy_entries_to_results(date_str)
+    except Exception:
+        pass
+
     with get_conn() as conn:
         races = conn.execute("""
             SELECT * FROM nar_races
