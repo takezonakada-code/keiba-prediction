@@ -135,10 +135,14 @@ def _predict_one_race(race: dict, date_str: str) -> Optional[dict]:
     race_name  = race.get("race_name") or f"{track}{race_no}R"
 
     # 馬データ取得
+    # ⚠️ リーク防止: finish_position / agari3f_seconds は予測計算に一切使用しない。
+    #    これらはレース後確定値であり、win_odds のみがモデルスコアの入力になる。
     with get_conn() as conn:
         horses_db = conn.execute("""
             SELECT horse_id, horse_name, draw_number, win_odds, popular_rank,
-                   finish_position, agari3f_seconds, horse_weight, horse_weight_diff,
+                   NULL AS finish_position,   -- 予測時は着順を参照しない（リーク防止）
+                   NULL AS agari3f_seconds,   -- 予測時は上がりを参照しない（リーク防止）
+                   horse_weight, horse_weight_diff,
                    weight_carried, jockey_id, jockey_name, corner4_pos
             FROM nar_results WHERE race_id = ?
             ORDER BY draw_number
