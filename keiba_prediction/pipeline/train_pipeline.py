@@ -433,7 +433,7 @@ def step3_train_ranker() -> dict:
             WHERE finish_position IS NOT NULL
             AND relevance IS NOT NULL
             ORDER BY race_date, race_id, draw_number
-        """, conn.connection)
+        """, conn)
 
     log.info(f"  学習データ: {len(df)}行, {df['race_id'].nunique()}レース")
 
@@ -551,7 +551,7 @@ def step4_calibrate() -> dict:
             SELECT * FROM training_features
             WHERE finish_position IS NOT NULL
             ORDER BY race_date, race_id, draw_number
-        """, conn.connection)
+        """, conn)
 
     df["race_date"] = pd.to_datetime(df["race_date"])
     for col in FEATURE_COLS:
