@@ -314,7 +314,7 @@ button{cursor:pointer;font-family:inherit}
   <div class="stt">⚙️ モデル状態</div>
   <div class="stats-grid">
     <div class="scard"><div class="slb">評価方式</div><div class="svl sg" style="font-size:14px">Walk-Forward</div><div class="ssb">月次/embargo 7日</div></div>
-    <div class="scard"><div class="slb">確率エンジン</div><div class="svl" style="font-size:14px">Harville</div><div class="ssb">EV = p×odds−1.0</div></div>
+    <div class="scard"><div class="slb">確率エンジン</div><div class="svl sg" style="font-size:14px">LGBMRanker</div><div class="ssb">NDCG@3: 0.7928 | 8folds</div></div>
     <div class="scard"><div class="slb">特徴量数</div><div class="svl sn">32</div><div class="ssb">pace/jockey/weight/gap</div></div>
     <div class="scard"><div class="slb">モデル</div><div class="svl" style="font-size:13px">市場確率</div><div class="ssb">LGBMRanker学習待ち</div></div>
   </div>
@@ -5031,6 +5031,49 @@ const HIT_RECORDS = [{"date": "2026-06-04", "race": "名古屋12R 金シャチ�
 const WEEKLY_ROI = [0.0];
 const YESTERDAY_DATA = [{"track":"園田","race_no":1,"result":"4-6-8","payout":550,"popular":2,"a_hit":false,"b_hit":false},{"track":"園田","race_no":2,"result":"5-7-10","payout":400,"popular":1,"a_hit":false,"b_hit":false},{"track":"園田","race_no":3,"result":"1-4-7","payout":9350,"popular":22,"a_hit":false,"b_hit":false},{"track":"園田","race_no":4,"result":"4-5-11","payout":980,"popular":3,"a_hit":false,"b_hit":false},{"track":"園田","race_no":5,"result":"4-9-11","payout":1770,"popular":6,"a_hit":false,"b_hit":false},{"track":"園田","race_no":6,"result":"1-8-9","payout":320,"popular":1,"a_hit":false,"b_hit":false},{"track":"園田","race_no":7,"result":"1-4-5","payout":153760,"popular":87,"a_hit":true,"b_hit":false},{"track":"園田","race_no":8,"result":"2-5-10","payout":240,"popular":1,"a_hit":false,"b_hit":false},{"track":"園田","race_no":9,"result":"8-11-12","payout":45970,"popular":74,"a_hit":true,"b_hit":false},{"track":"園田","race_no":10,"result":"5-6-8","payout":1450,"popular":5,"a_hit":false,"b_hit":false},{"track":"園田","race_no":11,"result":"6-7-10","payout":3000,"popular":8,"a_hit":false,"b_hit":false},{"track":"園田","race_no":12,"result":"2-8-11","payout":9180,"popular":30,"a_hit":true,"b_hit":false},{"track":"名古屋","race_no":12,"result":"1-5-6","payout":23360,"popular":83,"a_hit":false,"b_hit":false}];
 const SUMMARY_DATA = {"date":"2026-06-04","invest":21300,"payout":488820,"pnl":467520,"roi":2294.9,"total_races":12,"hits":2,"best_race":"園田7R 1-4-5 ¥153,760（87人気）","note":"5頭ボックス（レース別点数異なる）×300円 ROI 2,294.9%"};
+
+// ===== パターン分析データ =====
+const PATTERN_DATA = {
+  trackChaos: [
+    {track:"大井",chaosRate:33,favTop3:67.1,races:456},
+    {track:"浦和",chaosRate:27,favTop3:72.9,races:306},
+    {track:"名古屋",chaosRate:27,favTop3:73.4,races:726},
+    {track:"川崎",chaosRate:26,favTop3:74.1,races:398},
+    {track:"盛岡",chaosRate:26,favTop3:74.2,races:264},
+    {track:"園田",chaosRate:25,favTop3:75.0,races:657},
+    {track:"佐賀",chaosRate:25,favTop3:75.2,races:658},
+    {track:"高知",chaosRate:25,favTop3:75.4,races:598},
+    {track:"船橋",chaosRate:24,favTop3:76.2,races:408},
+    {track:"水沢",chaosRate:23,favTop3:77.0,races:357},
+    {track:"金沢",chaosRate:21,favTop3:79.1,races:382},
+    {track:"門別",chaosRate:21,favTop3:79.3,races:362},
+    {track:"姫路",chaosRate:20,favTop3:80.1,races:332},
+    {track:"笠松",chaosRate:19,favTop3:80.6,races:526},
+  ],
+  classChaos: [
+    {cls:"A級",chaosRate:25.3,races:379},
+    {cls:"C級",chaosRate:24.8,races:3681},
+    {cls:"B級",chaosRate:24.7,races:988},
+  ],
+  goingChaos: [
+    {going:"不良",favTop3:72.4,chaos:27.6,races:713},
+    {going:"重",  favTop3:74.9,chaos:25.1,races:953},
+    {going:"良",  favTop3:75.5,chaos:24.5,races:3320},
+    {going:"稍重",favTop3:77.4,chaos:22.6,races:1444},
+  ],
+  featureImportance: [
+    {name:"agari3f_rank_pct",importance:16780.9},
+    {name:"agari3f_z",importance:15966.0},
+    {name:"win_odds",importance:12158.0},
+    {name:"popular_rank",importance:355.9},
+    {name:"distance",importance:149.7},
+    {name:"horse_weight",importance:139.8},
+    {name:"speed_index_mean",importance:73.1},
+    {name:"style_score_c4",importance:50.1},
+    {name:"jockey_win_rate_3m",importance:47.9},
+    {name:"rest_rbf_7",importance:28.0},
+  ]
+};
 if(typeof TOMORROW_RACES==="undefined"){var TOMORROW_RACES=[];}
 const NUM_COLORS=["#E53E3E","#3182CE","#38A169","#D69E2E","#805AD5","#319795","#DD6B20","#718096","#E53E3E","#3182CE","#38A169","#D69E2E","#805AD5","#319795","#DD6B20","#718096","#E53E3E","#3182CE"];
 let currentMode="A";
