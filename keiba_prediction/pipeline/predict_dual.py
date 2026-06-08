@@ -70,7 +70,10 @@ def run_dual_predict(
     try:
         from data.nar_scraper import NARScraper
         nar_scraper = NARScraper(sleep_sec=2.0)
-        nar_stats = nar_scraper.run_today(target_date)
+        from data.nar_scraper import TRACK_MAP as _TM
+        # ばんえい(帯広)はkg_IDを生成するためスクレイプをスキップ
+        flat_codes = [k for k, v in _TM.items() if not v.get("banei")]
+        nar_stats = nar_scraper.run_today(target_date, track_filter=flat_codes)
         print(f"  NAR取得: {nar_stats}")
     except Exception as e:
         print(f"  NAR取得スキップ: {e}")
@@ -86,8 +89,8 @@ def run_dual_predict(
     with get_conn() as conn:
         races = conn.execute("""
             SELECT * FROM nar_races
-            WHERE race_date = ? AND race_type != 'banei'
-            ORDER BY track, race_no
+            WHERE race_date = ? AND race_id NOT LIKE 'kg_%'
+            ORDER BY CASE WHEN race_type='banei' THEN 1 ELSE 0 END, track, race_no
         """, (date_str,)).fetchall()
 
     if not races:
@@ -98,10 +101,15 @@ def run_dual_predict(
         return []
 
     all_race_data = []
+    from core.model_router import predict_race as _route_predict
 
     for race in races:
         race_dict = dict(race)
-        race_data = _predict_one_race(race_dict, date_str)
+        # ばんえいはmodel_router経由で専用モデルを使用
+        if race_dict.get("race_type") == "banei":
+            race_data = _route_predict(race_dict, date_str)
+        else:
+            race_data = _predict_one_race(race_dict, date_str)
         if race_data:
             all_race_data.append(race_data)
 
@@ -279,16 +287,25 @@ def _predict_one_race(race: dict, date_str: str) -> Optional[dict]:
     from probability.harville import harville_trio_prob, market_win_probs as mwp
     p_market_norm = mwp(win_odds_arr)   # 市場暗黙勝率
 
+    from core.validators import validate_ev, validate_scores, EV_MAX, EV_MIN
+
+    # モデルスコアをバリデート
+    model_scores_list = validate_scores(model_scores.tolist(), label=race_id)
+    import numpy as _np
+    model_scores = _np.array(model_scores_list)
+
     def harville_ev(combo_idx: tuple) -> tuple[float, float, float]:
-        """Harville式でEVを計算して (ev, p_model, est_odds) を返す。"""
+        """Harville式でEVを計算して (ev, p_model, est_odds) を返す。バリデーション込み。"""
         p_mod = harville_trio_prob(model_scores / model_scores.sum(), combo_idx)
         p_mkt = harville_trio_prob(p_market_norm, combo_idx)
-        est   = payback / max(p_mkt, 1e-9)   # 市場確率ベースの推定オッズ
-        ev    = p_mod * est - 1.0
+        est   = payback / max(p_mkt, 1e-9)
+        ev_raw = p_mod * est - 1.0
+        ev = validate_ev(ev_raw, label=f"{race_id} {combo_idx}")
+        if ev is None:
+            ev = 0.0
         return ev, p_mod, est
 
     # ── システムA: Harville EV降順 上位5点 ──────────
-    # 全C(n,3)をEV計算してEV > -0.10 のもので上位5点
     from itertools import combinations as iter_combos
     a_candidates = []
     for combo_idx in iter_combos(range(n_horses), 3):
@@ -296,7 +313,6 @@ def _predict_one_race(race: dict, date_str: str) -> Optional[dict]:
         nums = sorted(int(draw_numbers[i]) for i in combo_idx)
         a_candidates.append((ev, p_mod, est, combo_idx, nums))
 
-    # EVが高い順にソート、上位5点を選択（EVが全部低くても上位5点は必ず出す）
     a_candidates.sort(key=lambda x: x[0], reverse=True)
     system_a = []
     for ev, p_mod, est, combo_idx, nums in a_candidates[:5]:
@@ -382,8 +398,14 @@ def _predict_one_race(race: dict, date_str: str) -> Optional[dict]:
 # ──────────────────────────────────────────────────
 def _to_html_format(race_data: list[dict], date_str: str) -> list[dict]:
     """予測結果をindex.htmlのRACES配列形式に変換。"""
+    from core.validators import validate_ev
     races = []
     for rd in race_data:
+        # ばんえい専用フォーマット（model_routerから返ってくる場合）
+        if rd.get("is_banei"):
+            races.append(_format_banei_race(rd))
+            continue
+
         # 買い目リスト（A+B を統合、最大8点）
         tickets = []
         for bet in rd["system_a"][:5]:
@@ -444,6 +466,54 @@ def _to_html_format(race_data: list[dict], date_str: str) -> list[dict]:
         })
 
     return races
+
+
+def _format_banei_race(rd: dict) -> dict:
+    """ばんえい専用データをRACES配列形式に変換する。"""
+    from core.validators import validate_ev
+
+    chaos = rd.get("chaos", {"chaos_score": 0, "is_high_chaos": False,
+                              "is_mid_chaos": False, "level": "普通"})
+    # tickets（A+B統合）
+    tickets = []
+    for i, t in enumerate(rd.get("system_a", [])[:5]):
+        ev = validate_ev(t.get("ev"), label=rd.get("race_id","")) or 0.0
+        tickets.append({
+            "combo": t["combo"], "p": t.get("p_model", 0),
+            "ev": round(ev, 4), "kelly": "¥100", "mode": "A",
+            **({"topEv": True} if i == 0 else {}),
+        })
+    for i, t in enumerate(rd.get("system_b", [])[:3]):
+        ev = validate_ev(t.get("ev"), label=rd.get("race_id","")) or 0.0
+        tickets.append({
+            "combo": t["combo"], "p_model": t.get("p_model", 0),
+            "estOdds": t.get("est_odds", 0), "gap": round(ev, 4),
+            "kelly": "—", "mode": "B",
+            **({"topGap": True} if i == 0 else {}),
+        })
+
+    return {
+        "id":           rd.get("race_id", ""),
+        "name":         f"帯広{rd.get('race_no','')}R {rd.get('race_name','')[:15]}",
+        "meta":         f"帯広 / ばんえい200m / {rd.get('going','良')}",
+        "badge":        "banei",
+        "time":         rd.get("post_time", "—"),
+        "field":        rd.get("field_size", 0),
+        "raceClass":    rd.get("race_class", ""),
+        "track":        "帯広",
+        "raceNo":       rd.get("race_no", 0),
+        "chaosScore":   int(chaos.get("chaos_score", 0)),
+        "isHighChaos":  bool(chaos.get("is_high_chaos", False)),
+        "chaosLevel":   chaos.get("level", "普通"),
+        "isHighOddsTarget": rd.get("is_high_odds_target", False),
+        "hotReasons":   rd.get("hot_reasons", []),
+        "horses":       rd.get("horses", []),
+        "tickets":      tickets,
+        "explanation":  rd.get("hot_reasons", [""])[0] if rd.get("hot_reasons") else "",
+        "shapFeats":    [],
+        "noData":       False,
+        "isBanei":      True,
+    }
 
 
 def _make_dual_explanation(rd: dict, top_horse: dict) -> str:
