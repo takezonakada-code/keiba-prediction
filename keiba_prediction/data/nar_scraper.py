@@ -540,6 +540,19 @@ class NARScraper:
             ).fetchone()
         return row is not None
 
+    def _has_horses(self, race_id: str) -> bool:
+        """nar_results または nar_entries に馬データが存在するか確認。"""
+        with get_conn() as conn:
+            r = conn.execute(
+                "SELECT COUNT(*) FROM nar_results WHERE race_id = ?", (race_id,)
+            ).fetchone()
+            if r and r[0] > 0:
+                return True
+            e = conn.execute(
+                "SELECT COUNT(*) FROM nar_entries WHERE race_id = ?", (race_id,)
+            ).fetchone()
+            return (e and e[0] > 0)
+
     def _save_race(self, info: dict) -> None:
         with get_conn() as conn:
             conn.execute("""
@@ -675,15 +688,20 @@ class NARScraper:
         stats = {"total": len(race_ids), "success": 0, "failure": 0, "skipped": 0}
 
         for race_id in race_ids:
-            if self._race_exists(race_id):
+            if self._race_exists(race_id) and self._has_horses(race_id):
                 stats["skipped"] += 1
                 continue
 
-            # 今日のレースは結果があるものとないものが混在
-            # result.html を試して、内容がなければ shutuba.html を試す
+            # result.html → 馬データなし → shutuba.html にフォールバック
             ok = self.scrape_race(race_id, scrape_result=True, skip_if_exists=False)
-            if ok:
+            if ok and not self._has_horses(race_id):
+                # まだ未発走 → 出馬表（shutuba）から取得
+                ok = self.scrape_race(race_id, scrape_result=False, skip_if_exists=False)
+            if ok and self._has_horses(race_id):
                 stats["success"] += 1
+            elif ok:
+                # 出馬表も馬データなし（時刻前など）
+                stats["skipped"] += 1
             else:
                 stats["failure"] += 1
 

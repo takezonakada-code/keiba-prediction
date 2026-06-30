@@ -7,10 +7,17 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import lightgbm as lgb
+try:
+    import lightgbm as lgb
+    import shap
+    _LGBM_AVAILABLE = True
+except Exception:
+    lgb = None  # type: ignore
+    shap = None  # type: ignore
+    _LGBM_AVAILABLE = False
+
 import numpy as np
 import pandas as pd
-import shap
 
 
 def compute_shap_values(
@@ -95,7 +102,7 @@ def make_explanation_prompt(
 
 
 def build_shap_summary(
-    ranker: lgb.LGBMRanker,
+    ranker,
     X: pd.DataFrame,
     df_entries: pd.DataFrame,
     horse_name_col: str = "horse_name",
@@ -104,8 +111,11 @@ def build_shap_summary(
 ) -> pd.DataFrame:
     """
     全馬のSHAP top-n特徴量をDataFrameで返す。
-    DB保存・UI表示用。
+    DB保存・UI表示用。lightgbm未インストール時は空DataFrameを返す。
     """
+    if not _LGBM_AVAILABLE or ranker is None:
+        return pd.DataFrame()
+
     shap_values = compute_shap_values(ranker, X)
     feature_names = list(X.columns)
     records = []

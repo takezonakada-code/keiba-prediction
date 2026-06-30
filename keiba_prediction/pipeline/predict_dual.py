@@ -277,80 +277,60 @@ def _predict_one_race(race: dict, date_str: str) -> Optional[dict]:
         race_class, n_horses, fav_odds, top3_share, chaos["chaos_score"]
     )
 
-    # ── システムA: EV順 上位5点 ─────────────────
-    from probability.high_odds_selector import select_high_odds_tickets
-    probs = all_trifecta_box_probs(softmax_worth(model_scores))
+    # ── 3連単15点選択 ────────────────────────────
+    from probability.harville import market_win_probs as mwp
+    from probability.sanrentan import select_sanrentan_15
+    from core.validators import validate_ev, validate_scores
+
     horse_ids    = hdf["horse_id"].values
     draw_numbers = hdf["draw_number"].values
-
-    # ── Harville市場確率（EV計算の基準）────────────
-    from probability.harville import harville_trio_prob, market_win_probs as mwp
-    p_market_norm = mwp(win_odds_arr)   # 市場暗黙勝率
-
-    from core.validators import validate_ev, validate_scores, EV_MAX, EV_MIN
 
     # モデルスコアをバリデート
     model_scores_list = validate_scores(model_scores.tolist(), label=race_id)
     import numpy as _np
     model_scores = _np.array(model_scores_list)
 
-    def harville_ev(combo_idx: tuple) -> tuple[float, float, float]:
-        """Harville式でEVを計算して (ev, p_model, est_odds) を返す。バリデーション込み。"""
-        p_mod = harville_trio_prob(model_scores / model_scores.sum(), combo_idx)
-        p_mkt = harville_trio_prob(p_market_norm, combo_idx)
-        est   = payback / max(p_mkt, 1e-9)
-        ev_raw = p_mod * est - 1.0
-        ev = validate_ev(ev_raw, label=f"{race_id} {combo_idx}")
-        if ev is None:
-            ev = 0.0
-        return ev, p_mod, est
+    p_market_norm = mwp(win_odds_arr)
 
-    # ── システムA: Harville EV降順 上位5点 ──────────
-    from itertools import combinations as iter_combos
-    a_candidates = []
-    for combo_idx in iter_combos(range(n_horses), 3):
-        ev, p_mod, est = harville_ev(combo_idx)
-        nums = sorted(int(draw_numbers[i]) for i in combo_idx)
-        a_candidates.append((ev, p_mod, est, combo_idx, nums))
+    tickets_15 = select_sanrentan_15(
+        model_scores = model_scores,
+        market_probs = p_market_norm,
+        win_odds     = win_odds_arr,
+        draw_numbers = draw_numbers,
+        payback      = payback,
+        n_hon = 8,
+        n_ana = 4,
+        n_are = 3,
+    )
 
-    a_candidates.sort(key=lambda x: x[0], reverse=True)
+    # system_a / system_b に分割（後方互換）
     system_a = []
-    for ev, p_mod, est, combo_idx, nums in a_candidates[:5]:
-        system_a.append({
-            "combo":    "-".join(str(n) for n in nums),
-            "p_hit":    round(p_mod, 5),
-            "est_odds": round(est, 1),
-            "ev":       round(ev, 4),
-            "kelly":    f"¥{max(100, int(p_mod * 5000 / 100) * 100)}",
-            "mode":     "A",
-        })
+    system_b = []
+    for i, t in enumerate(tickets_15):
+        ev = validate_ev(t["ev"], label=f"{race_id} {t['combo']}") or 0.0
+        if t["label"] in ("本命",):
+            system_a.append({
+                "combo":    t["combo"],
+                "p_hit":    round(t["p_model"], 5),
+                "est_odds": round(t["est_odds"], 1),
+                "ev":       round(ev, 4),
+                "kelly":    "¥100",
+                "mode":     "A",
+                "label":    t["label"],
+            })
+        else:
+            system_b.append({
+                "combo":    t["combo"],
+                "p_model":  round(t["p_model"], 5),
+                "est_odds": round(t["est_odds"], 1),
+                "gap":      round(t["gap"], 3),
+                "ev":       round(ev, 4),
+                "mode":     "B",
+                "label":    t["label"],
+                "topGap":   len(system_b) == 0,
+            })
     if system_a:
         system_a[0]["topEv"] = True
-
-    # ── システムB: gap上位3点（全レース必ず出力）──────
-    # chaos条件なし・全レース対象
-    system_b = []
-    b_candidates = select_high_odds_tickets(
-        race_id      = race_id,
-        scores       = model_scores,
-        win_odds     = win_odds_arr,
-        chaos_score  = chaos["chaos_score"],
-        feature_df   = hdf.reset_index(drop=True),
-        draw_numbers = draw_numbers,
-        payback_rate = payback,
-        max_tickets  = 10,
-        min_gap      = 0.0,    # 全組み合わせを対象
-        min_est_odds = 10.0,   # 10倍以上
-    )
-    for c in b_candidates[:3]:
-        system_b.append({
-            "combo":    c["combo"],
-            "p_model":  round(c["p_model"], 5),
-            "est_odds": round(c["est_odds"], 1),
-            "gap":      round(c["gap"], 3),
-            "mode":     "B",
-            "topGap":   len(system_b) == 0,
-        })
 
     # ── 馬リスト（model_scores降順） ─────────────
     hdf_sorted = hdf.copy()
@@ -406,28 +386,32 @@ def _to_html_format(race_data: list[dict], date_str: str) -> list[dict]:
             races.append(_format_banei_race(rd))
             continue
 
-        # 買い目リスト（A+B を統合、最大8点）
+        # 買い目リスト（3連単15点 A+B統合）
         tickets = []
-        for bet in rd["system_a"][:5]:
+        for bet in rd["system_a"]:
             t = {
                 "combo":   bet["combo"],
                 "p":       bet["p_hit"],
                 "ev":      bet["ev"],
-                "kelly":   bet["kelly"],
+                "kelly":   "¥100",
                 "mode":    "A",
+                "label":   bet.get("label", "本命"),
+                "estOdds": bet.get("est_odds", 0),
             }
-            if not tickets:
+            if bet.get("topEv"):
                 t["topEv"] = True
             tickets.append(t)
 
-        for bet in rd["system_b"][:3]:
+        for bet in rd["system_b"]:
             t = {
                 "combo":    bet["combo"],
-                "p":        bet["p_model"],
-                "estOdds":  bet["est_odds"],
-                "gap":      bet["gap"],
-                "kelly":    "—",
+                "p":        bet.get("p_model", 0),
+                "estOdds":  bet.get("est_odds", 0),
+                "gap":      bet.get("gap", 0),
+                "ev":       bet.get("ev", 0),
+                "kelly":    "¥100",
                 "mode":     "B",
+                "label":    bet.get("label", "穴馬"),
                 "highOdds": True,
             }
             if bet.get("topGap"):
