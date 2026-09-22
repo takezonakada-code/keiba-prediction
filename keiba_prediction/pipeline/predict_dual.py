@@ -183,7 +183,15 @@ def _predict_one_race(race: dict, date_str: str) -> Optional[dict]:
 
     hdf = pd.DataFrame([dict(h) for h in horses_db])
     hdf["win_odds"] = pd.to_numeric(hdf["win_odds"], errors="coerce")
-    hdf = hdf[hdf["win_odds"].notna() & (hdf["win_odds"] > 0)].copy()
+    hdf_valid = hdf[hdf["win_odds"].notna() & (hdf["win_odds"] > 0)].copy()
+
+    # オッズ未発表（全馬0）の場合は均等確率で代替
+    if len(hdf_valid) < 3 and len(hdf) >= 3:
+        n_all = len(hdf)
+        hdf["win_odds"] = hdf["win_odds"].fillna(float(n_all)).replace(0.0, float(n_all))
+        hdf_valid = hdf[hdf["win_odds"] > 0].copy()
+
+    hdf = hdf_valid
 
     if len(hdf) < 3:
         return {
